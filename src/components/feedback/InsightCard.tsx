@@ -81,7 +81,7 @@ export default function InsightCard() {
 
   if (!insight) return null;
 
-  const isLocked = !user.uid && ((user as any).freeTrialsUsed >= 3);
+  const isLocked = user.isAnonymous && ((user as any).freeTrialsUsed >= 3);
 
   const priorityColors = {
     low: "bg-sage/10 border-sage/20 text-sage-dark",
@@ -105,7 +105,19 @@ export default function InsightCard() {
            </div>
            <h4 className="font-display font-bold text-bark mb-1">Supercharge Active</h4>
            <p className="text-[10px] text-bark-light font-medium mb-4">You&apos;ve used your 3 free AI Bio-Insights.</p>
-           <button className="px-4 py-2 bg-coral text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md hover:scale-105 transition-all">
+           <button 
+             onClick={() => {
+               import("@/lib/auth").then(({ signInWithGoogle }) => {
+                 signInWithGoogle().then((res) => {
+                   if (res.success) {
+                     showToast("🎉 Unlocked! Welcome to Elite.");
+                     window.location.reload(); 
+                   }
+                 });
+               });
+             }}
+             className="px-4 py-2 bg-coral text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md hover:scale-105 transition-all cursor-pointer"
+           >
              Upgrade Now <ArrowUpRight className="w-3 h-3" />
            </button>
         </div>
@@ -124,8 +136,13 @@ export default function InsightCard() {
               )}
             </div>
             <div>
-              <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] opacity-60 mb-1">
-                {isGenerating ? "Analyzing Biosignals..." : (insight.title || "Health Insight")}
+              <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] opacity-60 mb-1 flex items-center justify-between">
+                <span>{isGenerating ? "Analyzing Biosignals..." : (insight.title || "Health Insight")}</span>
+                {user.isAnonymous && (
+                  <span className="text-coral-dark/60 font-black">
+                    AI Trial: {Math.min(3, ((user as any).freeTrialsUsed || 0))} / 3
+                  </span>
+                )}
               </h3>
               <p className="text-bark font-bold leading-tight font-display text-lg">
                 {insight.message}

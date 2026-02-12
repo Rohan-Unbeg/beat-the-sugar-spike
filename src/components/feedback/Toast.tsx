@@ -1,16 +1,16 @@
 "use client";
 
 import { useStore } from "@/lib/store";
-import { motion, AnimatePresence } from "framer-motion";
 import { useEffect } from "react";
-import { X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { CheckCircle2 } from "lucide-react";
 
 export default function Toast() {
   const { toastMessage, clearToast } = useStore();
 
   useEffect(() => {
     if (toastMessage) {
-      const timer = setTimeout(clearToast, 4000);
+      const timer = setTimeout(clearToast, 3000);
       return () => clearTimeout(timer);
     }
   }, [toastMessage, clearToast]);
@@ -19,17 +19,13 @@ export default function Toast() {
     <AnimatePresence>
       {toastMessage && (
         <motion.div
-          initial={{ opacity: 0, y: -30, scale: 0.95 }}
+          initial={{ opacity: 0, y: -20, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -20, scale: 0.95 }}
-          className="fixed top-20 left-1/2 -translate-x-1/2 z-[60] max-w-sm w-[90%]"
+          exit={{ opacity: 0, y: -20, scale: 0.9 }}
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-5 py-3 rounded-full bg-bark text-white shadow-xl shadow-bark/20"
         >
-          <div className="bg-zinc-900/95 backdrop-blur-xl border border-zinc-700 text-zinc-100 px-4 py-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3">
-            <span className="text-sm font-medium">{toastMessage}</span>
-            <button onClick={clearToast} className="text-zinc-500 hover:text-white shrink-0">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+          <CheckCircle2 className="w-5 h-5 text-mint" />
+          <span className="font-medium text-sm">{toastMessage}</span>
         </motion.div>
       )}
     </AnimatePresence>
