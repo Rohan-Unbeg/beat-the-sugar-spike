@@ -4,8 +4,27 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { ArrowRight, Flame, Trophy, Activity } from "lucide-react";
+import { useStore } from "@/lib/store";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const { user } = useStore();
+  const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && user.isOnboarded) {
+      router.push("/dashboard");
+    }
+  }, [mounted, user.isOnboarded, router]);
+
+  if (!mounted) return null;
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 text-zinc-50 overflow-hidden relative selection:bg-rose-500/30">
       {/* Background Gradients */}
@@ -45,7 +64,7 @@ export default function Home() {
               <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>
           </Link>
-          <Link href="/demo-dashboard"> {/* Temporary link for testing dashboard directly later */}
+          <Link href="/dashboard">
             <Button variant="outline" size="lg" className="w-full sm:w-auto text-lg h-14 px-8 rounded-full border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white transition-all">
                View Demo
             </Button>
@@ -89,3 +108,4 @@ function FeatureCard({ icon, title, desc }: { icon: React.ReactNode; title: stri
     </div>
   );
 }
+
