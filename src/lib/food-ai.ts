@@ -102,7 +102,13 @@ export async function generatePersonalizedInsight(ctx: {
 
     const content = chatCompletion.choices[0]?.message?.content;
     return content ? JSON.parse(content) : null;
-  } catch (error) {
+  } catch (error: any) {
+    // Gracefully handle Rate Limits (429) to prevent app crash/scary overlays
+    if (error?.status === 429 || error?.code === 'rate_limit_exceeded' || error?.message?.includes?.('429')) {
+      console.warn("⚠️ AI Rate Limit Reached. Falling back to offline ML engine.");
+      return null; // Triggers fallback to generateMLInsight
+    }
+    
     console.error("Insight Generation Error:", error);
     return null;
   }

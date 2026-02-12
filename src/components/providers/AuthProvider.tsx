@@ -9,51 +9,73 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const { user, setUser, loadFromFirestore } = useStore();
 
   useEffect(() => {
-    // Check if store is hydrated from localStorage before touching auth
-    // ...
-    handleRedirectResult().catch(() => {});
+    let unsubscribe: () => void = () => {};
 
-    const unsubscribe = onAuthChange(async (firebaseUser) => {
-      if (firebaseUser) {
-        // 1. Initial Identity Resolution
-        const currentState = useStore.getState();
-        const currentUid = currentState.user.uid;
+    const setupAuth = async () => {
+        // Wait for redirect result first
+        console.log("[AuthProvider] Starting setupAuth (checking redirects)...");
+        await handleRedirectResult();
+        console.log("[AuthProvider] Redirect check done. Subscribing to auth state...");
         
-        // Trust localStorage first, but if it's null and we are anonymous, generate NOW.
-        // This makes the name "instant" even if Firestore is slow/offline.
-        let resolvedName = currentState.user.displayName;
-        if (!resolvedName && firebaseUser.isAnonymous) {
-          resolvedName = generateAnonName();
-        }
+        // NOW start listening
+        unsubscribe = onAuthChange(async (firebaseUser) => {
+          console.log("[AuthProvider] Auth State Change:", {
+            uid: firebaseUser?.uid,
+            isAnonymous: firebaseUser?.isAnonymous,
+            email: firebaseUser?.email
+          });
 
-        const updateData: any = {
-          uid: firebaseUser.uid,
-          photoURL: firebaseUser.photoURL || null,
-          email: firebaseUser.email || null,
-          displayName: firebaseUser.displayName || resolvedName,
-          isAnonymous: firebaseUser.isAnonymous,
-        };
+          if (firebaseUser) {
+            // 1. Initial Identity Resolution
+            const currentState = useStore.getState();
+            
+            let resolvedName = currentState.user.displayName;
+            if (!resolvedName && firebaseUser.isAnonymous) {
+              resolvedName = generateAnonName();
+            }
 
-        // Update local state immediately
-        setUser(updateData);
+            // Force current auth reality into the update
+            const updateData: any = {
+              uid: firebaseUser.uid,
+              photoURL: firebaseUser.photoURL || currentState.user.photoURL,
+              email: firebaseUser.email || currentState.user.email,
+              isAnonymous: firebaseUser.isAnonymous && !firebaseUser.email,
+            };
 
-        // 2. Background Sync
-        // loadFromFirestore will now only "upgrade" the name if it finds a different one in the cloud.
-        await loadFromFirestore(firebaseUser.uid).catch(() => {});
+            // Aggressive Name Resolution: Google > Cloud > Local Anon
+            if (!firebaseUser.isAnonymous && firebaseUser.displayName) {
+              updateData.displayName = firebaseUser.displayName;
+            } else if (currentState.user.displayName && currentState.user.isAnonymous && !firebaseUser.isAnonymous) {
+               updateData.displayName = firebaseUser.displayName || currentState.user.displayName;
+            } else {
+              updateData.displayName = currentState.user.displayName || resolvedName;
+            }
 
-        // 3. Provider Override (e.g. Google Sign-In just happened)
-        if (firebaseUser.displayName && firebaseUser.displayName !== useStore.getState().user.displayName) {
-          setUser({ displayName: firebaseUser.displayName });
-        }
-      }
-    });
+            console.log("[AuthProvider] Updating store with:", updateData);
+            setUser(updateData);
 
-    // Auto sign-in anonymously if not signed in (and store is ready)
-    if (!user.uid) {
-      signInAnon();
-    }
+            // 2. Background Sync
+            await loadFromFirestore(firebaseUser.uid).catch(() => {});
+            
+            // Final Safety Check: Force isAnonymous based on Firebase reality
+            const isAnon = firebaseUser.isAnonymous && !firebaseUser.email;
+            if (useStore.getState().user.isAnonymous !== isAnon) {
+               useStore.getState().setUser({ isAnonymous: isAnon });
+            }
+          } else {
+            // No user found (and we aren't already loading a session).
+            // This is the ONLY time we should auto-create an anon account.
+            console.log("[AuthProvider] No user found. Signing in anonymously...");
+            signInAnon();
+          }
+        });
+    };
 
-    return () => unsubscribe();
+    setupAuth();
+
+    return () => {
+        unsubscribe();
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <>{children}</>;

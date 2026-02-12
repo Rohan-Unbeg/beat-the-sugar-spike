@@ -100,12 +100,6 @@ export default function Dashboard() {
             <div>
               <div className="flex items-center gap-2">
                 <p className="text-[10px] uppercase tracking-wider font-bold text-bark-light/40">Welcome back</p>
-                {user.isPassiveSyncEnabled && (
-                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-sage/10 border border-sage/20">
-                    <div className="w-1 h-1 rounded-full bg-sage animate-pulse" />
-                    <span className="text-[8px] font-black text-sage-dark uppercase tracking-tighter">Google Fit Live</span>
-                  </div>
-                )}
               </div>
               {/* Name Skeleton or Text */}
               {user.displayName ? (
@@ -123,7 +117,7 @@ export default function Dashboard() {
                      onClick={() => {
                         import("@/lib/auth").then(({ signInWithGoogle }) => {
                           signInWithGoogle().then(res => {
-                             if(res.success) window.location.reload();
+                             // No reload needed; AuthProvider updates state
                           });
                         });
                      }}
