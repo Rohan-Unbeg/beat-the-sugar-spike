@@ -20,6 +20,8 @@ interface UserProfile {
   displayName: string | null;
   photoURL: string | null;
   email: string | null;
+  bmi: number | null;
+  isAnonymous: boolean;
   isPassiveSyncEnabled: boolean;
   passiveData: {
     steps: number;
@@ -55,6 +57,7 @@ interface AppState {
   getTodaysLogs: () => SugarLog[];
   syncToFirestore: () => Promise<void>;
   loadFromFirestore: (uid: string) => Promise<void>;
+  resetStore: () => void;
 }
 
 const getDateStr = (d: Date) => d.toISOString().split('T')[0];
@@ -76,6 +79,8 @@ export const useStore = create<AppState>()(
         displayName: null,
         photoURL: null,
         email: null,
+        bmi: null,
+        isAnonymous: true,
         isPassiveSyncEnabled: false,
         passiveData: {
           steps: 0,
@@ -251,6 +256,37 @@ export const useStore = create<AppState>()(
         } finally {
           set({ isLoading: false });
         }
+      },
+      resetStore: () => {
+        set({
+          user: {
+            age: null,
+            weight: null,
+            height: null,
+            gender: null,
+            isOnboarded: false,
+            streak: 0,
+            score: 0,
+            lastSeenLevel: 1,
+            lastLogDate: null,
+            uid: null,
+            displayName: null,
+            photoURL: null,
+            email: null,
+            bmi: null,
+            isAnonymous: true,
+            isPassiveSyncEnabled: false,
+            passiveData: {
+              steps: 0,
+              heartRate: 72,
+              sleepHours: 8,
+            },
+          },
+          logs: [],
+          toastMessage: null,
+          isSyncing: false,
+          isLoading: false
+        });
       },
     }),
     {

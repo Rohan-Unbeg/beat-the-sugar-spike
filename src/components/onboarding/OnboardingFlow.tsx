@@ -9,7 +9,9 @@ import confetti from "canvas-confetti";
 import { audio } from "@/lib/audio";
 import { useRouter } from "next/navigation";
 
-// Steps: Name -> Age -> Gender -> Height -> Weight -> Commitment
+import { generateAnonName } from "@/lib/utils";
+
+// Steps: Gender -> Age -> Height -> Weight -> Goal -> Pledge
 
 export default function OnboardingFlow() {
   const router = useRouter();
@@ -38,16 +40,18 @@ export default function OnboardingFlow() {
   const completeOnboarding = () => {
     // Save to global store
     const bmi = Number((formData.weight / ((formData.height / 100) ** 2)).toFixed(1));
+    const anonName = generateAnonName();
     
     setUser({
       ...user,
-      displayName: formData.name || "Friend",
+      displayName: anonName,
       age: formData.age,
       gender: formData.gender,
       height: formData.height,
       weight: formData.weight,
       bmi: bmi,
       isOnboarded: true,
+      isAnonymous: true,
       lastLogDate: new Date().toISOString().split('T')[0] // Initialize streak
     });
 
@@ -100,35 +104,42 @@ export default function OnboardingFlow() {
 
       <AnimatePresence mode="wait" custom={1}>
         
-        {/* STEP 0: NAME */}
+        {/* STEP 0: GENDER */}
         {step === 0 && (
           <motion.div
             key="step0"
-            custom={1}
             variants={slideVariants}
             initial="enter"
             animate="center"
             exit="exit"
-            className="flex-1 flex flex-col justify-center p-8 text-center"
+            className="flex-1 flex flex-col justify-center p-8"
           >
-            <div className="w-20 h-20 bg-coral/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <User className="w-10 h-10 text-coral" />
-            </div>
-            <h2 className="font-display font-black text-3xl text-bark mb-2">Let's get verified.</h2>
-            <p className="text-bark-light/60 font-medium mb-8">What should we call you?</p>
+            <h2 className="font-display font-black text-3xl text-bark mb-4 text-center">Identity.</h2>
+            <p className="text-bark-light/60 font-medium mb-8 text-center uppercase text-[10px] tracking-widest">Select your gender</p>
             
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => updateData("name", e.target.value)}
-              placeholder="Your Name"
-              className="w-full text-center text-3xl font-bold bg-transparent border-b-2 border-clay/20 focus:border-coral outline-none py-2 text-bark placeholder:text-clay/30"
-              autoFocus
-            />
+            <div className="grid grid-cols-1 gap-3">
+              {["male", "female", "other"].map((g) => (
+                <button
+                  key={g}
+                  onClick={() => {
+                    updateData("gender", g);
+                    setTimeout(nextStep, 300);
+                  }}
+                  className={cn(
+                    "p-6 rounded-3xl border-2 font-bold capitalize transition-all text-xl",
+                    formData.gender === g
+                      ? "border-coral bg-coral text-white shadow-xl scale-105"
+                      : "border-clay/10 bg-white text-bark-light hover:border-clay/30"
+                  )}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
           </motion.div>
         )}
 
-        {/* STEP 1: AGE & GENDER */}
+        {/* STEP 1: AGE */}
         {step === 1 && (
           <motion.div
             key="step1"
@@ -136,40 +147,24 @@ export default function OnboardingFlow() {
             initial="enter"
             animate="center"
             exit="exit"
-            className="flex-1 flex flex-col justify-center p-8"
+            className="flex-1 flex flex-col justify-center p-8 text-center"
           >
-            <h2 className="font-display font-black text-3xl text-bark mb-8 text-center">Basics.</h2>
+            <h2 className="font-display font-black text-3xl text-bark mb-2">Age.</h2>
+            <p className="text-bark-light/60 font-medium mb-12">Helps calculate your metabolism.</p>
             
-            <div className="space-y-8">
-              <div>
-                <label className="text-xs font-bold uppercase text-bark-light/50 tracking-widest mb-4 block text-center">Age: {formData.age}</label>
-                <input
-                  type="range"
-                  min="10"
-                  max="100"
-                  value={formData.age}
-                  onChange={(e) => updateData("age", Number(e.target.value))}
-                  className="w-full accent-coral h-2 bg-sand rounded-full appearance-none cursor-pointer"
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                {["male", "female", "other"].map((g) => (
-                  <button
-                    key={g}
-                    onClick={() => updateData("gender", g)}
-                    className={cn(
-                      "p-4 rounded-2xl border-2 font-bold capitalize transition-all",
-                      formData.gender === g
-                        ? "border-coral bg-coral/10 text-coral shadow-lg scale-105"
-                        : "border-clay/10 bg-white text-bark-light hover:border-clay/30"
-                    )}
-                  >
-                    {g}
-                  </button>
-                ))}
-              </div>
+            <div className="mb-8">
+              <span className="text-7xl font-black text-bark tracking-tighter">{formData.age}</span>
+              <span className="text-xl font-bold text-bark-light/40 ml-1">yrs</span>
             </div>
+
+            <input
+              type="range"
+              min="10"
+              max="100"
+              value={formData.age}
+              onChange={(e) => updateData("age", Number(e.target.value))}
+              className="w-full accent-coral h-2 bg-sand rounded-full appearance-none cursor-pointer"
+            />
           </motion.div>
         )}
 
@@ -187,28 +182,13 @@ export default function OnboardingFlow() {
               <Ruler className="w-10 h-10 text-blue-500" />
             </div>
             <h2 className="font-display font-black text-3xl text-bark mb-2">How tall?</h2>
-            <p className="text-bark-light/60 font-medium mb-12">Helps personalize your plan.</p>
+            <p className="text-bark-light/60 font-medium mb-12">cm</p>
             
-            <div className="relative h-64 w-24 mx-auto bg-sand/30 rounded-full overflow-hidden">
-               <div 
-                 className="absolute bottom-0 left-0 right-0 bg-coral transition-all duration-100 ease-out"
-                 style={{ height: `${((formData.height - 100) / 120) * 100}%` }}
-               />
-               <input
-                  type="range"
-                  min="100"
-                  max="220"
-                  value={formData.height}
-                  onChange={(e) => updateData("height", Number(e.target.value))}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                  // vertical slider hack if needed, but horizontal usually easier. sticking to vertical via css transform often tricky.
-                  // Let's use standard range for stability and just visualize it vertically.
-               />
-               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                 <span className="text-4xl font-black text-bark mix-blend-multiply">{formData.height}</span>
-                 <span className="text-sm font-bold text-bark/50 ml-1 mt-4">cm</span>
-               </div>
+            <div className="mb-8">
+              <span className="text-7xl font-black text-bark tracking-tighter">{formData.height}</span>
+              <span className="text-xl font-bold text-bark-light/40 ml-1">cm</span>
             </div>
+
             <input
                type="range"
                min="100"
@@ -285,7 +265,10 @@ export default function OnboardingFlow() {
               ].map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => updateData("goal", item.id)}
+                  onClick={() => {
+                    updateData("goal", item.id);
+                    setTimeout(nextStep, 500);
+                  }}
                   className={cn(
                     "w-full p-6 rounded-3xl border-2 flex items-center gap-4 transition-all group",
                     formData.goal === item.id
@@ -325,7 +308,7 @@ export default function OnboardingFlow() {
                I PLEDGE ✋
             </button>
             <p className="mt-6 text-xs text-bark-light/40 font-bold uppercase tracking-widest">
-              No Signup Required • 100% Private
+              No Signup Required • Anonymous Profile
             </p>
           </motion.div>
         )}
@@ -337,7 +320,6 @@ export default function OnboardingFlow() {
         <div className="p-8 mt-auto">
           <button
             onClick={nextStep}
-            disabled={step === 0 && !formData.name}
             className="w-full py-4 rounded-2xl bg-bark text-white font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-black transition-colors flex items-center justify-center gap-2"
           >
             Next <ChevronRight className="w-5 h-5" />
