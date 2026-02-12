@@ -38,8 +38,10 @@ export default function ProfilePage() {
   const isSignedIn = !!user.uid;
 
   const handleGoogleSignIn = async () => {
+    console.log("[Profile] Sign-in button CLICKED");
     setLoading(true);
     const result = await signInWithGoogle();
+    console.log("[Profile] Sign-in result:", result);
     setLoading(false);
     if (result.success) {
       showToast("🎉 Signed in successfully!");
