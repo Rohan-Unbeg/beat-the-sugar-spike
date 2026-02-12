@@ -14,7 +14,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     const setupAuth = async () => {
         // Wait for redirect result first
         console.log("[AuthProvider] Starting setupAuth (checking redirects)...");
-        await handleRedirectResult();
+        await handleRedirectResult(); // This might update auth state internally if successful
         console.log("[AuthProvider] Redirect check done. Subscribing to auth state...");
         
         // NOW start listening
@@ -22,46 +22,43 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
           console.log("[AuthProvider] Auth State Change:", {
             uid: firebaseUser?.uid,
             isAnonymous: firebaseUser?.isAnonymous,
-            email: firebaseUser?.email
+            email: firebaseUser?.email,
+            displayName: firebaseUser?.displayName
           });
 
           if (firebaseUser) {
-            // 1. Initial Identity Resolution
             const currentState = useStore.getState();
             
-            let resolvedName = currentState.user.displayName;
-            if (!resolvedName && firebaseUser.isAnonymous) {
+            // 1. TRUST FIREBASE AUTH FOR IDENTITY
+            // If Firebase says we have a name/photo/email, USE IT.
+            // Only fallback to local state if Firebase is empty (e.g. specialized anon flows)
+            let resolvedName = firebaseUser.displayName || currentState.user.displayName;
+            let resolvedPhoto = firebaseUser.photoURL || currentState.user.photoURL;
+            let resolvedEmail = firebaseUser.email || currentState.user.email;
+
+            // If truly anonymous and no name, generate one if needed
+            if (firebaseUser.isAnonymous && !resolvedName) {
               resolvedName = generateAnonName();
             }
 
-            // Force current auth reality into the update
+            const isAnon = firebaseUser.isAnonymous; // Trust Firebase
+
             const updateData: any = {
               uid: firebaseUser.uid,
-              photoURL: firebaseUser.photoURL || currentState.user.photoURL,
-              email: firebaseUser.email || currentState.user.email,
-              isAnonymous: firebaseUser.isAnonymous && !firebaseUser.email,
+              displayName: resolvedName,
+              photoURL: resolvedPhoto,
+              email: resolvedEmail,
+              isAnonymous: isAnon, 
             };
 
-            // Aggressive Name Resolution: Google > Cloud > Local Anon
-            if (!firebaseUser.isAnonymous && firebaseUser.displayName) {
-              updateData.displayName = firebaseUser.displayName;
-            } else if (currentState.user.displayName && currentState.user.isAnonymous && !firebaseUser.isAnonymous) {
-               updateData.displayName = firebaseUser.displayName || currentState.user.displayName;
-            } else {
-              updateData.displayName = currentState.user.displayName || resolvedName;
-            }
-
-            console.log("[AuthProvider] Updating store with:", updateData);
+            console.log("[AuthProvider] Updating store with TRUSTED data:", updateData);
             setUser(updateData);
 
             // 2. Background Sync
-            await loadFromFirestore(firebaseUser.uid).catch(() => {});
+            // Pass the CURRENT trusted identity to loadFromFirestore
+            // This prevents the store from overwriting our valid session with old stale data
+            await loadFromFirestore(firebaseUser.uid);
             
-            // Final Safety Check: Force isAnonymous based on Firebase reality
-            const isAnon = firebaseUser.isAnonymous && !firebaseUser.email;
-            if (useStore.getState().user.isAnonymous !== isAnon) {
-               useStore.getState().setUser({ isAnonymous: isAnon });
-            }
           } else {
             // No user found (and we aren't already loading a session).
             // This is the ONLY time we should auto-create an anon account.

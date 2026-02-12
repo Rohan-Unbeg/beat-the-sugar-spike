@@ -28,42 +28,64 @@ export async function signInAnon(): Promise<User | null> {
 
 // Sign in with Google — tries popup first, falls back to redirect
 export async function signInWithGoogle(): Promise<{ success: boolean; user?: User; error?: string }> {
+  console.log("[Auth] signInWithGoogle EXECUTED");
   try {
     const currentUser = auth.currentUser;
 
-    // If anonymous, link with Google (preserves data)
+    // If anonymous, we USED to try linking with Google to preserve data.
+    // However, `linkWithPopup` is notoriously flaky (hangs, blocked by browsers).
+    // For stability, we heavily prefer direct sign-in. This may orphan the anon session, 
+    // but ensures the user can actually get into their account.
+    /* 
     if (currentUser && currentUser.isAnonymous) {
+      // ... linking logic ...
+    }
+    */
+    const shouldLink = false; // Force false to skip flaky linking
+    if (currentUser && currentUser.isAnonymous && shouldLink) {
       console.log("[Auth] Attempting to link anonymous account (isAnonymous: true)...");
       try {
-        const result = await linkWithPopup(currentUser, googleProvider);
+        console.log("[Auth] Calling linkWithPopup...");
+        
+        // RACE: Link or Timeout (4s)
+        // Sometimes linkWithPopup hangs if the browser blocks it weirdly or network is flaky
+        const linkPromise = linkWithPopup(currentUser, googleProvider);
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => {
+                console.log("[Auth] linkWithPopup TIMED OUT (4s). Rejecting...");
+                reject(new Error("TIMEOUT"));
+            }, 4000)
+        );
+
+        const result: any = await Promise.race([linkPromise, timeoutPromise]);
+        
         console.log("[Auth] Anonymous → Google upgrade success via POPUP:", result.user.uid);
         return { success: true, user: result.user };
       } catch (linkError: any) {
-        console.warn("[Auth] Link failed (popup):", linkError.code);
-        
-        if (linkError.code === "auth/popup-blocked") {
-          console.log("[Auth] Popup blocked, falling back to redirect for LINK...");
-          await linkWithRedirect(currentUser, googleProvider);
-          return { success: true };
+        console.warn("[Auth] Link failed (popup/timeout):", linkError);
+
+        // DEBUG: Alert using window.alert (if available) to pause before potential refresh
+        if (typeof window !== 'undefined') {
+             window.alert(`DEBUG: Link failed: ${linkError.message || linkError}`);
         }
         
-        if (linkError.code === "auth/credential-already-in-use") {
-          console.log("[Auth] Credential already in use. Switching to existing account...");
-          try {
+        // If it was a generic error, timeout, or blocked popup, we try to recover
+        // FALLBACK: Just sign in directly (might orphan anon data, but better than being stuck)
+        console.log("[Auth] Fallback: Switching to direct signInWithPopup (ignoring linking)...");
+        
+        try {
             const result = await signInWithPopup(auth, googleProvider);
-            console.log("[Auth] Switch to existing account success:", result.user.uid);
+            console.log("[Auth] Direct sign-in success (fallback):", result.user.uid);
             return { success: true, user: result.user };
-          } catch (popupErr: any) {
-            console.error("[Auth] Switch to existing account failed:", popupErr);
-            if (popupErr.code === "auth/popup-blocked") {
-               console.log("[Auth] Switch fallback to redirect...");
-               await signInWithRedirect(auth, googleProvider);
-               return { success: true };
-            }
-            throw popupErr;
-          }
+        } catch (directErr: any) {
+             console.error("[Auth] Direct sign-in fallback also failed:", directErr);
+             if (directErr.code === "auth/popup-blocked") {
+                 console.log("[Auth] One last try: Redirect...");
+                 await signInWithRedirect(auth, googleProvider);
+                 return { success: true };
+             }
+             throw directErr;
         }
-        throw linkError;
       }
     }
 
@@ -71,7 +93,7 @@ export async function signInWithGoogle(): Promise<{ success: boolean; user?: Use
     console.log("[Auth] Starting direct Google sign-in (NO anonymous user or linking skipped)...");
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      console.log("[Auth] Google sign-in success via POPUP:", result.user.uid);
+      console.log("[Auth] Google sign-in success via POPUP. UID:", result.user.uid, "IsAnon:", result.user.isAnonymous);
       return { success: true, user: result.user };
     } catch (popupError: any) {
       console.error("[Auth] Direct sign-in failed (popup):", popupError);

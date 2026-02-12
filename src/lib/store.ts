@@ -196,6 +196,9 @@ export const useStore = create<AppState>()(
               score: state.user.score,
               lastLogDate: state.user.lastLogDate,
               displayName: state.user.displayName,
+              email: state.user.email,
+              photoURL: state.user.photoURL,
+              isAnonymous: state.user.isAnonymous, // Explicitly save this
               lastSeenLevel: state.user.lastSeenLevel || 1,
               isPassiveSyncEnabled: state.user.isPassiveSyncEnabled,
               passiveData: state.user.passiveData,
@@ -214,7 +217,6 @@ export const useStore = create<AppState>()(
       loadFromFirestore: async (uid: string) => {
         // Since we now have enableMultiTabIndexedDbPersistence,
         // getDoc will return from CACHE immediately if available.
-        // No more manual retries needed for "offline" states!
         
         // OPTIMISTIC LOADING: If we already have a name in memory (from persist), 
         // don't show a skeleton. Use what we have while we verify with the cloud.
@@ -229,14 +231,26 @@ export const useStore = create<AppState>()(
             const profile = data.profile || {};
             
             // Merge cloud data with local state
-            // Cloud takes priority for stats, but we keep our current UID/displayName if already set
+            // CRITICAL: Cloud takes priority for STATS (score, streak, logs)
+            // But for IDENTITY (isAnonymous, email, photo, name), we must be careful
+            // not to overwrite our shiny new Google session with an old "Anonymous" record from DB.
+            const current = get().user;
+            
+            // If our current local state says we are NOT anonymous (e.g. just linked Google),
+            // and the DB says we ARE anonymous (old data), ignore DB's identity fields.
+            const trustLocalIdentity = !current.isAnonymous;
+
             set({
               user: {
-                ...get().user,
+                ...current,
                 ...profile,
+                // IDENTITY: Prioritize local if we are "more authenticated" than DB
                 uid,
-                // Only overwrite displayName if cloud actually HAS one.
-                displayName: profile.displayName || get().user.displayName,
+                displayName: trustLocalIdentity ? current.displayName : (profile.displayName || current.displayName),
+                email: trustLocalIdentity ? current.email : (profile.email || current.email),
+                photoURL: trustLocalIdentity ? current.photoURL : (profile.photoURL || current.photoURL),
+                isAnonymous: trustLocalIdentity ? false : (profile.isAnonymous ?? current.isAnonymous),
+                
                 lastSeenLevel: profile.lastSeenLevel || 1,
               },
               logs: data.logs || [],

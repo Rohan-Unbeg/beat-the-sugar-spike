@@ -1,6 +1,7 @@
 "use client";
 
 import { useStore } from "@/lib/store";
+import { signInWithGoogle } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -115,10 +116,10 @@ export default function Dashboard() {
                    </h1>
                    <button 
                      onClick={() => {
-                        import("@/lib/auth").then(({ signInWithGoogle }) => {
-                          signInWithGoogle().then(res => {
-                             // No reload needed; AuthProvider updates state
-                          });
+                        console.log("[Dashboard] Header Guest button CLICKED");
+                        signInWithGoogle().then(res => {
+                           console.log("[Dashboard] Sign-in result:", res);
+                           // No reload needed; AuthProvider updates state
                         });
                      }}
                      className="text-[9px] font-bold text-coral bg-coral/10 px-1.5 py-0.5 rounded-full mt-0.5 flex items-center gap-1 hover:bg-coral/20 transition-colors"
