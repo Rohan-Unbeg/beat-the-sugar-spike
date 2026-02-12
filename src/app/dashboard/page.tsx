@@ -4,13 +4,14 @@ import { useStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Flame, Trophy, Plus, Clock, Search } from "lucide-react";
+import { Flame, Trophy, Plus, Clock, Search, ArrowUpRight } from "lucide-react";
 import SugarLogger from "@/components/dashboard/SugarLogger";
 import DailyStats from "@/components/dashboard/DailyStats";
 import RewardModal from "@/components/feedback/RewardModal";
 import InsightCard from "@/components/feedback/InsightCard";
 import DataSyncSimulator from "@/components/dashboard/DataSyncSimulator";
 import SignupUpsell from "@/components/feedback/SignupUpsell";
+import GuestBanner from "@/components/feedback/GuestBanner";
 import Toast from "@/components/feedback/Toast";
 import BottomNav from "@/components/navigation/BottomNav";
 import HealthSyncPrompt from "@/components/dashboard/HealthSyncPrompt";
@@ -61,9 +62,9 @@ export default function Dashboard() {
     .filter(log => new Date(log.timestamp).toDateString() === today)
     .reverse();
 
-  const greeting = user.displayName
-    ? `Hey, ${user.displayName.split(" ")[0]}`
-    : "Hello, Friend";
+  const greeting = !user.isAnonymous
+    ? `Hey, ${user.displayName?.split(" ")[0]}`
+    : `Hello, ${user.displayName || "Friend"}`;
 
   return (
     <div className="min-h-screen bg-warm-white pb-32 relative text-bark selection:bg-coral/20">
@@ -114,9 +115,23 @@ export default function Dashboard() {
               ) : isLoading ? (
                  <Skeleton className="h-5 w-32 mt-1" />
               ) : (
-                 <h1 className="font-display font-bold text-lg text-bark leading-none animate-in fade-in duration-500">
-                   Hello, Friend
-                 </h1>
+                 <div className="flex flex-col items-start">
+                   <h1 className="font-display font-bold text-lg text-bark leading-none animate-in fade-in duration-500">
+                     Hello, Friend
+                   </h1>
+                   <button 
+                     onClick={() => {
+                        import("@/lib/auth").then(({ signInWithGoogle }) => {
+                          signInWithGoogle().then(res => {
+                             if(res.success) window.location.reload();
+                          });
+                        });
+                     }}
+                     className="text-[9px] font-bold text-coral bg-coral/10 px-1.5 py-0.5 rounded-full mt-0.5 flex items-center gap-1 hover:bg-coral/20 transition-colors"
+                   >
+                     Guest &bull; Unsynced <ArrowUpRight className="w-2 h-2" />
+                   </button>
+                 </div>
               )}
             </div>
           </div>
@@ -135,6 +150,7 @@ export default function Dashboard() {
       </header>
 
       <main className="max-w-md mx-auto px-6 pt-24 space-y-8">
+        <GuestBanner />
         <DailyStats />
         <StreakReminder />
         <HealthSyncPrompt />
