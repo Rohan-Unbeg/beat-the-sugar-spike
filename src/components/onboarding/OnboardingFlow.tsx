@@ -41,7 +41,7 @@ export default function OnboardingFlow() {
     
     setUser({
       ...user,
-      name: formData.name || "Friend",
+      displayName: formData.name || "Friend",
       age: formData.age,
       gender: formData.gender,
       height: formData.height,
@@ -187,7 +187,7 @@ export default function OnboardingFlow() {
               <Ruler className="w-10 h-10 text-blue-500" />
             </div>
             <h2 className="font-display font-black text-3xl text-bark mb-2">How tall?</h2>
-            <p className="text-bark-light/60 font-medium mb-12">Helps calculate metabolic rate.</p>
+            <p className="text-bark-light/60 font-medium mb-12">Helps personalize your plan.</p>
             
             <div className="relative h-64 w-24 mx-auto bg-sand/30 rounded-full overflow-hidden">
                <div 

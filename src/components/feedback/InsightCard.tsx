@@ -71,7 +71,7 @@ export default function InsightCard() {
     setActionCompleted(true);
     addScore(7); 
     audio.playSuccess();
-    showToast("🎯 Challenge Completed! +7 Action XP");
+    showToast("🎯 Challenge Completed! +7 Logged");
     confetti({
       particleCount: 80,
       spread: 60,
@@ -146,9 +146,9 @@ export default function InsightCard() {
              }`}
            >
              {actionCompleted ? (
-               <><CheckCircle2 className="w-4 h-4 text-sage" /><span className="text-xs font-black">Done! +7 XP</span></>
+               <><CheckCircle2 className="w-4 h-4 text-sage" /><span className="text-xs font-black">Done! +7 Logged</span></>
              ) : (
-               <><Activity className="w-3.5 h-3.5" /><span className="text-xs font-black">{insight.action}</span><span className="text-[9px] font-bold text-coral ml-1">+7 XP</span></>
+               <><Activity className="w-3.5 h-3.5" /><span className="text-xs font-black">I Did It!</span><span className="text-[9px] font-bold text-coral ml-1 text-opacity-80">(+7 XP)</span></>
              )}
            </motion.button>
            
@@ -173,4 +173,3 @@ export default function InsightCard() {
     </motion.div>
   );
 }
-

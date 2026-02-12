@@ -148,7 +148,7 @@ export const useStore = create<AppState>()(
         }
 
         // Bonus: High Activity (Steps > 5000)
-        if (state.user.isPassiveSyncEnabled && state.user.passiveData.steps > 5000) {
+        if (state.user.isPassiveSyncEnabled && (state.user.passiveData?.steps || 0) > 5000) {
           totalPoints += 5;
         }
 

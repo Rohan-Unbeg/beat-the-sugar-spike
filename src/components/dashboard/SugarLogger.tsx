@@ -24,6 +24,7 @@ export default function SugarLogger() {
   const handleLog = (preset: typeof PRESETS[0]) => {
     if (isLoggingRef.current) return;
     isLoggingRef.current = true;
+    audio.playClick();
     setLogging(preset.id);
     
     setTimeout(() => {
