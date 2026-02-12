@@ -5,25 +5,29 @@ import { useStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { Activity, Moon, Watch } from "lucide-react";
+import { Activity, Moon, Watch, Check, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function DataSyncSimulator() {
   const [isOpen, setIsOpen] = useState(false);
   const [steps, setSteps] = useState(0);
   const [sleep, setSleep] = useState(0);
-  const { addScore } = useStore();
+  const { addScore, showToast } = useStore();
   const [syncing, setSyncing] = useState(false);
+  const [synced, setSynced] = useState(false);
 
   const handleSync = () => {
     setSyncing(true);
-    // Simulate "Finding Device" and "Syncing"
+    setSynced(false);
     setTimeout(() => {
       setSyncing(false);
-      // Hackathon Logic: Reward user for "good" behavior immediately
-      if (steps > 5000) addScore(50);
-      if (sleep > 7) addScore(30);
-      alert(`Synced! Found ${steps} steps and ${sleep}hrs sleep. Added to profile.`);
+      setSynced(true);
+      let bonus = 0;
+      if (steps > 5000) bonus += 50;
+      if (sleep > 7) bonus += 30;
+      if (bonus > 0) addScore(bonus);
+      showToast(`✅ Synced: ${steps.toLocaleString()} steps, ${sleep}hrs sleep${bonus > 0 ? ` → +${bonus} XP!` : ""}`);
+      setTimeout(() => setSynced(false), 3000);
     }, 1500);
   };
 
@@ -47,7 +51,7 @@ export default function DataSyncSimulator() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs text-zinc-400">
                     <span className="flex items-center gap-1"><Activity className="w-3 h-3" /> Steps</span>
-                    <span>{steps}</span>
+                    <span className="font-mono">{steps.toLocaleString()}</span>
                   </div>
                   <Slider 
                     value={[steps]} 
@@ -60,7 +64,7 @@ export default function DataSyncSimulator() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs text-zinc-400">
                     <span className="flex items-center gap-1"><Moon className="w-3 h-3" /> Sleep (hrs)</span>
-                    <span>{sleep}</span>
+                    <span className="font-mono">{sleep}</span>
                   </div>
                   <Slider 
                     value={[sleep]} 
@@ -75,7 +79,13 @@ export default function DataSyncSimulator() {
                   disabled={syncing}
                   className="w-full bg-blue-600 hover:bg-blue-500 text-white"
                 >
-                  {syncing ? "Syncing..." : "Simulate Sync"}
+                  {syncing ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Syncing...</>
+                  ) : synced ? (
+                    <><Check className="w-4 h-4 mr-2" /> Synced!</>
+                  ) : (
+                    "Simulate Sync"
+                  )}
                 </Button>
               </div>
             </Card>
@@ -93,3 +103,4 @@ export default function DataSyncSimulator() {
     </div>
   );
 }
+

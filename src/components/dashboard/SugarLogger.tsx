@@ -22,15 +22,15 @@ export default function SugarLogger() {
   const handleLog = (preset: typeof PRESETS[0]) => {
     setLogging(preset.id);
     
-    // Simulate API delay / Animation time
     setTimeout(() => {
-      audio.playSuccess(); // Play sound
+      audio.playSuccess();
       addLog({
         type: preset.id,
+        label: preset.label,
         timestamp: new Date().toISOString(),
         amount: preset.amount,
       });
-      addScore(5); // Basic reward for tracking
+      addScore(5);
       setLogging(null);
     }, 800);
   };
