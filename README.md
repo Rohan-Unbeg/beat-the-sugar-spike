@@ -118,27 +118,46 @@ The app simulates an ML engine that generates personalized health nudges based o
 | Afternoon cravings | _"Dehydration mimics sugar cravings in 60% of cases"_ |
 | Clean day | _"Stable blood sugar = stable focus"_ |
 
+## 🚀 Elite Hackathon Features
+
+To stand out in the **M-Code** competition, we've implemented advanced "Elite" features that go beyond a simple tracker:
+
+- **🤖 AI Food Parser (Groq)**: Uses Llama-3 to parse natural language (e.g., "1 plate of Pav Bhaji") and estimate sugar content instantly. No more rigid databases.
+- **🎤 Voice Logging**: One-tap voice capture using the Web Speech API. Log sugar without typing, in under 3 seconds.
+- **⌚ Passive Health & Wearable Sync**: Seamlessly "Syncs" with device health data (simulated Google Fit) to provide context-aware feedback.
+- **🧠 ML-Driven Explainability**: The app doesn't just give tips; it explains the **biological reasoning** (e.g., *"Walking blunts the insulin spike"*).
+- **🕹️ Psychological Hooks**: Built on the Fogg Behavior Model – using streaks, variable rewards, and instant gratification loops.
+
 ---
 
-## 📋 Judging Criteria Addressed
+## 🛠 Tech Stack
 
-| Criterion | How We Address It |
-|---|---|
-| **Innovation** | Gamified health tracking with context-aware nudges |
-| **Design & UI/UX** | Premium dark theme, Framer Motion animations, glassmorphism |
-| **Impact** | Real health behavior change through fun habit loops |
-| **Technical Complexity** | State management, simulated ML, Web Audio, persistence |
-| **Code Quality** | TypeScript, modular components, clean architecture |
-| **Latest Tech** | Next.js 16, Tailwind CSS 4, Zustand 5, React 19 |
+- **Framework**: Next.js 15+ (App Router)
+- **Styling**: Tailwind CSS 4.0 (Modern Vibrant Palette)
+- **State**: Zustand 5 + Persistence
+- **Animations**: Framer Motion 12
+- **Database**: Firebase (Firestore, Auth, Anonymous UID)
+- **AI**: Groq (Llama-3.3-70B Logic Engine)
+- **Voice**: Web Speech API
+
+---
+
+## 📋 Hackathon Requirements Status
+
+| Requirement | Status | Implementation Detail |
+|---|---|---|
+| **2.1 Fast Logging** | ✅ Complete | One-tap presets + AI Voice Search |
+| **2.2 Signup-Free** | ✅ Complete | Device-based Anonymous UID with sliders |
+| **2.3 Passive Sync** | ✅ Complete | Google Fit "Real-Feel" permission flow |
+| **2.4 Habit Ritual** | ✅ Complete | Dynamic Streaks & Progress Bars |
+| **2.5 Variable Rewards**| ✅ Complete | Success sounds + Randomized Luck XP |
+| **2.7 Context AI** | ✅ Complete | Cause → Effect insights based on BMI/Steps |
+| **3.3 Bonus: ML** | ✅ Complete | Groq integration + Explainability toggle |
 
 ---
 
 ## 👥 Team
-
-- **Rohan Unbeg** 
-
----
+- **Rohan Unbeg**
 
 ## 📄 License
-
-Built for **M-Code Hackathon 2026** @ IIEST Shibpur (Metallum 7.0)
+Built for **M-Code Hackathon 2026** (IIEST Shibpur)

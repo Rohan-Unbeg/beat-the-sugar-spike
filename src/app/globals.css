@@ -1,13 +1,12 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-
-
-
-
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -31,29 +30,44 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* Brand Colors */
+  --color-coral: #FF6B6B;
+  --color-coral-dark: #E55A5A;
+  --color-peach: #FFB088;
+  --color-sage: #8BBF9F;
+  --color-sage-dark: #6BA583;
+  --color-mint: #B8E8D0;
+  --color-cream: #FFF8F0;
+  --color-warm-white: #FFFCF9;
+  --color-sand: #F5EDE4;
+  --color-clay: #E8DDD3;
+  --color-bark: #2D1B11;
+  --color-bark-light: #5C4033;
+  --color-golden: #FFD93D;
 }
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 346.8 77.2% 49.8%;
-    --primary-foreground: 355.7 100% 97.3%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 346.8 77.2% 49.8%;
+    --background: 30 100% 98%;
+    --foreground: 20 40% 12%;
+    --card: 30 50% 97%;
+    --card-foreground: 20 40% 12%;
+    --popover: 30 50% 97%;
+    --popover-foreground: 20 40% 12%;
+    --primary: 0 72% 71%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 30 25% 92%;
+    --secondary-foreground: 20 40% 12%;
+    --muted: 30 25% 92%;
+    --muted-foreground: 20 10% 50%;
+    --accent: 150 30% 65%;
+    --accent-foreground: 20 40% 12%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 30 20% 88%;
+    --input: 30 20% 88%;
+    --ring: 0 72% 71%;
     --radius: 0.75rem;
   }
 }
@@ -64,11 +78,22 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased selection:bg-rose-500/20;
+    @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+}
 
-  html {
-    scroll-behavior: smooth;
+/* Utility classes for the warm light theme */
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .bg-grain {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
   }
 }

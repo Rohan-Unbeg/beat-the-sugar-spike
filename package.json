@@ -10,10 +10,13 @@
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
+    "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "firebase": "^12.9.0",
     "framer-motion": "^12.34.0",
+    "groq-sdk": "^0.37.0",
     "lucide-react": "^0.563.0",
     "next": "16.1.6",
     "radix-ui": "^1.4.3",
@@ -25,6 +28,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
