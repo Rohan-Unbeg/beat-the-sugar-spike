@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { db } from './firebase';
 
+import { generateAnonName } from './utils';
 type Gender = 'male' | 'female' | 'other' | null;
 
 interface UserProfile {
@@ -11,7 +14,18 @@ interface UserProfile {
   isOnboarded: boolean;
   streak: number;
   score: number;
-  lastLogDate: string | null; // ISO date string for streak tracking
+  lastSeenLevel?: number; // Track for modal
+  lastLogDate: string | null;
+  uid: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  email: string | null;
+  isPassiveSyncEnabled: boolean;
+  passiveData: {
+    steps: number;
+    heartRate: number;
+    sleepHours: number;
+  };
 }
 
 interface SugarLog {
@@ -26,15 +40,21 @@ interface AppState {
   user: UserProfile;
   logs: SugarLog[];
   toastMessage: string | null;
+  isSyncing: boolean;
+  isLoading: boolean;
   setUser: (data: Partial<UserProfile>) => void;
   addLog: (log: Omit<SugarLog, 'id'>) => void;
   incrementStreak: () => void;
   resetStreak: () => void;
   addScore: (points: number) => void;
   completeOnboarding: () => void;
+  togglePassiveSync: (enabled: boolean) => void;
+  updatePassiveData: (data: Partial<AppState['user']['passiveData']>) => void;
   showToast: (message: string) => void;
   clearToast: () => void;
   getTodaysLogs: () => SugarLog[];
+  syncToFirestore: () => Promise<void>;
+  loadFromFirestore: (uid: string) => Promise<void>;
 }
 
 const getDateStr = (d: Date) => d.toISOString().split('T')[0];
@@ -50,14 +70,36 @@ export const useStore = create<AppState>()(
         isOnboarded: false,
         streak: 0,
         score: 0,
+        lastSeenLevel: 1, // Default
         lastLogDate: null,
+        uid: null,
+        displayName: null,
+        photoURL: null,
+        email: null,
+        isPassiveSyncEnabled: false,
+        passiveData: {
+          steps: 0,
+          heartRate: 72,
+          sleepHours: 8,
+        },
       },
       logs: [],
       toastMessage: null,
+      isSyncing: false,
+      isLoading: true,
       setUser: (data) =>
         set((state) => ({ user: { ...state.user, ...data } })),
       completeOnboarding: () =>
         set((state) => ({ user: { ...state.user, isOnboarded: true } })),
+      togglePassiveSync: (enabled) =>
+        set((state) => ({ user: { ...state.user, isPassiveSyncEnabled: enabled } })),
+      updatePassiveData: (data) =>
+        set((state) => ({ 
+          user: { 
+            ...state.user, 
+            passiveData: { ...state.user.passiveData, ...data } 
+          } 
+        })),
       addLog: (log) =>
         set((state) => {
           const today = getDateStr(new Date());
@@ -68,13 +110,13 @@ export const useStore = create<AppState>()(
           if (lastLog !== today) {
             const yesterday = getDateStr(new Date(Date.now() - 86400000));
             if (lastLog === yesterday || lastLog === null) {
-              newStreak += 1; // Continuing the streak or first ever log
+              newStreak += 1;
             } else {
-              newStreak = 1; // Missed a day, reset to 1
+              newStreak = 1;
             }
           }
 
-          return {
+          const newState = {
             logs: [
               ...state.logs,
               { ...log, id: Math.random().toString(36).substr(2, 9) },
@@ -85,18 +127,130 @@ export const useStore = create<AppState>()(
               streak: newStreak,
             },
           };
+
+          // Fire-and-forget Firestore sync after state update
+          setTimeout(() => get().syncToFirestore(), 100);
+
+          return newState;
         }),
       incrementStreak: () =>
         set((state) => ({ user: { ...state.user, streak: state.user.streak + 1 } })),
       resetStreak: () =>
         set((state) => ({ user: { ...state.user, streak: 0 } })),
-      addScore: (points) =>
-        set((state) => ({ user: { ...state.user, score: state.user.score + points } })),
+      addScore: (points) => {
+        const state = get();
+        let totalPoints = points;
+        
+        // Bonus: Early Log (Before 6 PM)
+        const hour = new Date().getHours();
+        if (hour < 18) {
+          totalPoints += 3;
+        }
+
+        // Bonus: High Activity (Steps > 5000)
+        if (state.user.isPassiveSyncEnabled && state.user.passiveData.steps > 5000) {
+          totalPoints += 5;
+        }
+
+        // VARIABLE REWARD: Random Luck Bonus (+1 to +3)
+        const luckBonus = Math.floor(Math.random() * 3) + 1;
+        totalPoints += luckBonus;
+
+        set((state) => ({ user: { ...state.user, score: state.user.score + totalPoints } }));
+        setTimeout(() => get().syncToFirestore(), 100);
+        
+        const bonusTotal = totalPoints - points;
+        if (bonusTotal > 0) {
+          get().showToast(`✨ +${bonusTotal} Bonus XP! (${luckBonus} Luck Bonus included)`);
+        }
+      },
       showToast: (message) => set({ toastMessage: message }),
       clearToast: () => set({ toastMessage: null }),
       getTodaysLogs: () => {
         const today = new Date().toDateString();
         return get().logs.filter(log => new Date(log.timestamp).toDateString() === today);
+      },
+
+      // ---- Firestore Sync ----
+      syncToFirestore: async () => {
+        const state = get();
+        const uid = state.user.uid;
+        if (!uid) return;
+
+        // Debounce/Race protection: If already syncing, we might want to let it finish or just set flag
+        set({ isSyncing: true });
+        try {
+          await setDoc(doc(db, 'users', uid), {
+            profile: {
+              age: state.user.age,
+              weight: state.user.weight,
+              height: state.user.height,
+              gender: state.user.gender,
+              isOnboarded: state.user.isOnboarded,
+              streak: state.user.streak,
+              score: state.user.score,
+              lastLogDate: state.user.lastLogDate,
+              displayName: state.user.displayName,
+              lastSeenLevel: state.user.lastSeenLevel || 1,
+              isPassiveSyncEnabled: state.user.isPassiveSyncEnabled,
+              passiveData: state.user.passiveData,
+            },
+            logs: state.logs,
+            updatedAt: new Date().toISOString(),
+          });
+        } catch (err) {
+          console.error('[Firestore] Sync failed:', err);
+        } finally {
+          // Immediately hide spinner, rely on UI transition for smoothness if needed
+          set({ isSyncing: false });
+        }
+      },
+
+      loadFromFirestore: async (uid: string) => {
+        // Since we now have enableMultiTabIndexedDbPersistence,
+        // getDoc will return from CACHE immediately if available.
+        // No more manual retries needed for "offline" states!
+        
+        // OPTIMISTIC LOADING: If we already have a name in memory (from persist), 
+        // don't show a skeleton. Use what we have while we verify with the cloud.
+        if (get().user.displayName) {
+           set({ isLoading: false });
+        }
+        
+        try {
+          const snap = await getDoc(doc(db, 'users', uid));
+          if (snap.exists()) {
+            const data = snap.data();
+            const profile = data.profile || {};
+            
+            // Merge cloud data with local state
+            // Cloud takes priority for stats, but we keep our current UID/displayName if already set
+            set({
+              user: {
+                ...get().user,
+                ...profile,
+                uid,
+                // Only overwrite displayName if cloud actually HAS one.
+                displayName: profile.displayName || get().user.displayName,
+                lastSeenLevel: profile.lastSeenLevel || 1,
+              },
+              logs: data.logs || [],
+            });
+            
+            console.log('[Firestore] Synced user data for:', uid);
+          } else {
+             // New user: AuthProvider already generated a name for us.
+             // Just ensure the UID is correct.
+             set(state => ({ user: { ...state.user, uid } }));
+             // Sync our newly generated local state to the cloud.
+             setTimeout(() => get().syncToFirestore(), 1000);
+          }
+        } catch (err: any) {
+          console.error('[Firestore] Load error (using local cache):', err);
+          // With persistence, even if this fails, we likely have the local store data.
+        } finally {
+          set({ isLoading: false });
+        }
       },
     }),
     {
@@ -108,3 +262,4 @@ export const useStore = create<AppState>()(
     }
   )
 );
+
