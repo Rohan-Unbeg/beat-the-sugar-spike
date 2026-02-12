@@ -8,6 +8,8 @@ import SugarLogger from "@/components/dashboard/SugarLogger";
 import DailyStats from "@/components/dashboard/DailyStats";
 import RewardModal from "@/components/feedback/RewardModal";
 import InsightCard from "@/components/feedback/InsightCard";
+import DataSyncSimulator from "@/components/dashboard/DataSyncSimulator";
+import SignupUpsell from "@/components/feedback/SignupUpsell";
 
 export default function Dashboard() {
   const { user } = useStore();
@@ -22,6 +24,8 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white pb-20 relative">
       <RewardModal />
+      <DataSyncSimulator />
+      <SignupUpsell />
       
       {/* Header / Top Bar */}
       <header className="fixed top-0 w-full z-50 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800">
