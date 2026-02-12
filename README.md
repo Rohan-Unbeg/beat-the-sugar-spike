@@ -37,7 +37,6 @@
 | **Radix UI** | Accessible headless components |
 | **Lucide React** | Beautiful icon library |
 | **Web Audio API** | Haptic-like audio feedback |
-
 ---
 
 ## 📂 Project Structure
