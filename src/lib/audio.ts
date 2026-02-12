@@ -14,45 +14,74 @@ class AudioEngine {
     if (!this.ctx) return;
 
     const t = this.ctx.currentTime;
+    
+    // Create a precise "Glass Ping" chord (C6 + E6)
+    const frequencies = [1046.50, 1318.51]; 
+    
+    frequencies.forEach((freq, i) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, t);
+      
+      // Clean envelope: Instant attack, smooth exponential decay
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.1 - (i * 0.03), t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+      
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+      
+      osc.start(t);
+      osc.stop(t + 0.8);
+    });
+  }
+
+  playClick() {
+    this.init();
+    if (!this.ctx) return;
+    
+    const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
-
+    
+    // High-pitched "tick" (like a mechanical watch or iPhone keyboard)
     osc.type = "sine";
-    // Play a happy major third "ding-dong" effect
-    osc.frequency.setValueAtTime(523.25, t); // C5
-    osc.frequency.exponentialRampToValueAtTime(659.25, t + 0.1); // E5
-    osc.frequency.exponentialRampToValueAtTime(1046.50, t + 0.3); // C6?
-
-    gain.gain.setValueAtTime(0.1, t);
-    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
-
+    osc.frequency.setValueAtTime(800, t);
+    osc.frequency.exponentialRampToValueAtTime(1200, t + 0.02);
+    
+    // Ultra-short envelope
+    gain.gain.setValueAtTime(0.15, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05); // 50ms click
+    
     osc.connect(gain);
     gain.connect(this.ctx.destination);
-
+    
     osc.start(t);
-    osc.stop(t + 0.5);
+    osc.stop(t + 0.05);
   }
 
   playError() {
     this.init();
     if (!this.ctx) return;
-
+    
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
-
-    osc.type = "sawtooth";
+    
+    osc.type = "triangle";
     osc.frequency.setValueAtTime(150, t);
-    osc.frequency.linearRampToValueAtTime(100, t + 0.2);
-
+    osc.frequency.linearRampToValueAtTime(100, t + 0.1);
+    
     gain.gain.setValueAtTime(0.1, t);
-    gain.gain.linearRampToValueAtTime(0.01, t + 0.3);
-
+    gain.gain.linearRampToValueAtTime(0.001, t + 0.15);
+    
     osc.connect(gain);
     gain.connect(this.ctx.destination);
-
+    
     osc.start(t);
-    osc.stop(t + 0.3);
+    osc.stop(t + 0.2);
   }
 }
 

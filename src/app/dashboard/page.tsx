@@ -36,7 +36,7 @@ export default function Dashboard() {
           // Add 10-20 steps every 10 seconds
           const extraSteps = Math.floor(Math.random() * 10) + 10;
           state.updatePassiveData({
-             steps: state.user.passiveData.steps + extraSteps,
+             steps: (state.user.passiveData?.steps || 0) + extraSteps,
              heartRate: 70 + Math.floor(Math.random() * 10)
           });
        }

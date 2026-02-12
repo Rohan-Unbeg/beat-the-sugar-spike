@@ -56,3 +56,54 @@ export async function parseFoodWithAI(query: string): Promise<AIParsedFood | nul
     return null;
   }
 }
+export async function generatePersonalizedInsight(ctx: {
+  age: number;
+  bmi: number;
+  steps: number;
+  sleepHours: number;
+  timeOfDay: number;
+  sugarIntake: number;
+  isMale: boolean;
+}): Promise<any | null> {
+  try {
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `You are a high-performance bio-optimization coach. Generate a personalized health insight and one corrective action based on the user's current data.
+          
+          RULES:
+          1. Use simple, direct, non-diagnostic language.
+          2. Use Cause -> Effect format.
+          3. Action MUST be doable immediately (under 15 mins).
+          4. Adapt advice to the context:
+             - If steps are low: Suggest movement.
+             - If sleep is low: Explain insulin resistance.
+             - If late night: Mention circadian rhythm.
+          
+          Return JSON:
+          {
+            "title": "Short catchy title",
+            "message": "The personalized insight",
+            "action": "One direct action string (e.g. '10-min walk')",
+            "why": "Brief biological explanation",
+            "priority": "low" | "medium" | "high"
+          }`
+        },
+        {
+          role: "user",
+          content: `Context: Age ${ctx.age}, BMI ${ctx.bmi.toFixed(1)}, Steps today: ${ctx.steps}, Sleep last night: ${ctx.sleepHours}h, Current Hour: ${ctx.timeOfDay}, Sugar intake just now: ${ctx.sugarIntake}g, Gender: ${ctx.isMale ? 'Male' : 'Female'}`
+        }
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.7,
+      response_format: { type: "json_object" }
+    });
+
+    const content = chatCompletion.choices[0]?.message?.content;
+    return content ? JSON.parse(content) : null;
+  } catch (error) {
+    console.error("Insight Generation Error:", error);
+    return null;
+  }
+}
