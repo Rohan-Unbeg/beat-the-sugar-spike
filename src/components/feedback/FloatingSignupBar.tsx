@@ -2,7 +2,7 @@
 
 import { useStore } from "@/lib/store";
 import { signInWithGoogle } from "@/lib/auth";
-import { ArrowUpRight, ShieldCheck } from "lucide-react";
+import { ArrowUpRight, ShieldCheck, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 
@@ -26,7 +26,13 @@ export default function FloatingSignupBar() {
         exit={{ opacity: 0, y: 50, scale: 0.95 }}
         className="fixed bottom-[100px] left-0 right-0 z-40 px-6 pointer-events-none"
       >
-        <div className="max-w-md mx-auto pointer-events-auto">
+        <div className="max-w-md mx-auto pointer-events-auto relative">
+          <button
+            onClick={() => setIsVisible(false)}
+            className="absolute -top-2 -right-2 p-1.5 bg-white rounded-full shadow-lg text-bark-light hover:text-coral transition-colors border border-clay/20 z-50 cursor-pointer active:scale-95"
+          >
+            <X className="w-3 h-3" />
+          </button>
           <button
             onClick={() => {
               import("@/lib/auth").then(({ signInWithGoogle }) => {
