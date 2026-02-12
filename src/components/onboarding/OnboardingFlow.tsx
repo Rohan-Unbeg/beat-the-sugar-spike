@@ -2,21 +2,28 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
-import { Card } from "@/components/ui/card";
-import { ArrowRight, ChevronLeft, Check, User } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
+import { useStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
+import confetti from "canvas-confetti";
 
-const steps = ["age", "weight", "height", "gender"];
+const steps = ["welcome", "age", "weight", "height", "gender"];
+
+const stepMeta: Record<string, { emoji: string; title: string; subtitle: string }> = {
+  welcome: { emoji: "👋", title: "Let's get started", subtitle: "We need a few details to personalize your plan." },
+  age: { emoji: "🎂", title: "How old are you?", subtitle: "This helps us calculate your metabolism." },
+  weight: { emoji: "⚖️", title: "What's your weight?", subtitle: "Be honest! We won't tell anyone." },
+  height: { emoji: "📏", title: "How tall are you?", subtitle: "Helps personalize your health insights." },
+  gender: { emoji: "🧬", title: "Biological sex?", subtitle: "Helps with accurate calorie estimation." },
+};
 
 export default function OnboardingFlow() {
   const [currentStep, setCurrentStep] = useState(0);
-  const { setUser, completeOnboarding } = useStore();
+  const [direction, setDirection] = useState(0);
   const router = useRouter();
+  const { setUser, completeOnboarding, syncToFirestore } = useStore();
 
-  // Local state for inputs before saving
   const [age, setAge] = useState(25);
   const [weight, setWeight] = useState(70);
   const [height, setHeight] = useState(170);
@@ -24,182 +31,161 @@ export default function OnboardingFlow() {
 
   const nextStep = () => {
     if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
+      setDirection(1);
+      setCurrentStep(c => c + 1);
     } else {
       finishOnboarding();
-    }
-  };
-
-  const prevStep = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
     }
   };
 
   const finishOnboarding = () => {
     setUser({ age, weight, height, gender });
     completeOnboarding();
-    router.push("/dashboard");
+    
+    // Fire confetti
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#FF6B6B', '#FFB088', '#B8E8D0']
+    });
+
+    // Background sync
+    syncToFirestore().catch(() => {});
+    
+    setTimeout(() => {
+      router.push("/dashboard");
+    }, 1000);
   };
+
+  const stepName = steps[currentStep];
+  const meta = stepMeta[stepName];
+  const isWelcome = stepName === "welcome";
 
   const variants = {
-    enter: (direction: number) => ({
-      x: direction > 0 ? 50 : -50,
-      opacity: 0,
-    }),
-    center: {
-      x: 0,
-      opacity: 1,
-    },
-    exit: (direction: number) => ({
-      x: direction < 0 ? 50 : -50,
-      opacity: 0,
-    }),
+    enter: (direction: number) => ({ x: direction > 0 ? 50 : -50, opacity: 0 }),
+    center: { zIndex: 1, x: 0, opacity: 1 },
+    exit: (direction: number) => ({ zIndex: 0, x: direction < 0 ? 50 : -50, opacity: 0 }),
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-6">
-      <div className="mb-8">
-        <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+    <div className="min-h-screen bg-warm-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      {/* Background blobs */}
+      <div className="absolute top-[-10%] right-[-10%] w-[50vh] h-[50vh] bg-peach/20 rounded-full blur-[80px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[50vh] h-[50vh] bg-mint/20 rounded-full blur-[80px] pointer-events-none" />
+
+      {/* Progress Bar (skip for welcome) */}
+      {!isWelcome && (
+        <div className="fixed top-0 left-0 w-full h-1.5 bg-clay/20">
           <motion.div
-            className="h-full bg-rose-500"
+            className="h-full bg-coral"
             initial={{ width: 0 }}
-            animate={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
-            transition={{ duration: 0.3 }}
+            animate={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
+            transition={{ duration: 0.5 }}
           />
         </div>
-        <p className="text-right text-xs text-zinc-500 mt-2">
-          Step {currentStep + 1} of {steps.length}
-        </p>
-      </div>
+      )}
 
-      <AnimatePresence mode="wait" initial={false} custom={1}>
-        {currentStep === 0 && (
-          <Slide key="age" variants={variants}>
-            <h2 className="text-3xl font-bold mb-2">How young are you?</h2>
-            <p className="text-zinc-400 mb-8">We use this to personalize your insights.</p>
-            <div className="py-8">
-              <div className="text-6xl font-bold text-center mb-8 text-rose-500">{age}</div>
-              <Slider
-                value={[age]}
-                onValueChange={(val) => setAge(val[0])}
-                min={16}
-                max={90}
-                step={1}
-                className="py-4"
-              />
-              <p className="text-center text-zinc-500 mt-4">years old</p>
-            </div>
-          </Slide>
-        )}
-
-        {currentStep === 1 && (
-          <Slide key="weight" variants={variants}>
-            <h2 className="text-3xl font-bold mb-2">What's your weight?</h2>
-             <p className="text-zinc-400 mb-8">Used to calculate hydration and sugar impact.</p>
-            <div className="py-8">
-              <div className="text-6xl font-bold text-center mb-8 text-rose-500">{weight} <span className="text-2xl text-zinc-500">kg</span></div>
-              <Slider
-                value={[weight]}
-                onValueChange={(val) => setWeight(val[0])}
-                min={30}
-                max={150}
-                step={1}
-                className="py-4"
-              />
-            </div>
-          </Slide>
-        )}
-
-        {currentStep === 2 && (
-          <Slide key="height" variants={variants}>
-            <h2 className="text-3xl font-bold mb-2">How tall are you?</h2>
-             <p className="text-zinc-400 mb-8">Helping us understand your body metrics.</p>
-            <div className="py-8">
-              <div className="text-6xl font-bold text-center mb-8 text-rose-500">{height} <span className="text-2xl text-zinc-500">cm</span></div>
-              <Slider
-                value={[height]}
-                onValueChange={(val) => setHeight(val[0])}
-                min={100}
-                max={220}
-                step={1}
-                className="py-4"
-              />
-            </div>
-          </Slide>
-        )}
-
-        {currentStep === 3 && (
-          <Slide key="gender" variants={variants}>
-            <h2 className="text-3xl font-bold mb-2">Biological Sex</h2>
-            <p className="text-zinc-400 mb-8">For accurate metabolic calculations.</p>
-            <div className="grid grid-cols-1 gap-4 py-4">
-              <GenderCard
-                label="Male"
-                selected={gender === "male"}
-                onClick={() => setGender("male")}
-              />
-              <GenderCard
-                label="Female"
-                selected={gender === "female"}
-                onClick={() => setGender("female")}
-              />
-               <GenderCard
-                label="Other"
-                selected={gender === "other"}
-                onClick={() => setGender("other")}
-              />
-            </div>
-          </Slide>
-        )}
-      </AnimatePresence>
-
-      <div className="flex items-center justify-between mt-12">
-        {currentStep > 0 ? (
-          <Button variant="ghost" onClick={prevStep} className="text-zinc-400 hover:text-white">
-            <ChevronLeft className="w-4 h-4 mr-2" /> Back
-          </Button>
-        ) : <div />}
-        
-        <Button 
-          onClick={nextStep} 
-          disabled={currentStep === 3 && !gender}
-          className="bg-zinc-100 text-zinc-950 hover:bg-white rounded-full px-8 py-6 text-lg"
+      <AnimatePresence initial={false} mode="wait" custom={direction}>
+        <motion.div
+          key={currentStep}
+          custom={direction}
+          variants={variants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{ x: { type: "spring", stiffness: 300, damping: 30 }, opacity: { duration: 0.2 } }}
+          className="w-full max-w-sm text-center"
         >
-          {currentStep === steps.length - 1 ? "Finish" : "Next"} <ArrowRight className="w-5 h-5 ml-2" />
-        </Button>
-      </div>
-    </div>
-  );
-}
+          <div className="mb-6 text-6xl animate-bounce-slow">
+            {meta.emoji}
+          </div>
+          
+          <h1 className="font-display text-3xl font-bold text-bark mb-3">{meta.title}</h1>
+          <p className="text-bark-light/60 mb-10 text-lg leading-relaxed">{meta.subtitle}</p>
 
-function Slide({ children, variants }: { children: React.ReactNode; variants: any }) {
-  return (
-    <motion.div
-      variants={variants}
-      initial="enter"
-      animate="center"
-      exit="exit"
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      className="min-h-[300px] flex flex-col"
-    >
-      {children}
-    </motion.div>
-  );
-}
+          <div className="min-h-[160px] flex items-center justify-center mb-8">
+            {stepName === "welcome" && (
+              <div className="p-6 bg-white/60 rounded-3xl border border-clay/30 rotate-3 transform transition-transform hover:rotate-0">
+                 <p className="font-handwriting text-xl text-coral font-bold -rotate-6">Ready to change?</p>
+              </div>
+            )}
 
-function GenderCard({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
-  return (
-    <div
-      onClick={onClick}
-      className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${
-        selected
-          ? "border-rose-500 bg-rose-500/10 text-rose-500"
-          : "border-zinc-800 bg-zinc-900/50 hover:border-zinc-700 hover:bg-zinc-800"
-      }`}
-    >
-      <span className="font-semibold text-lg">{label}</span>
-      {selected && <Check className="w-5 h-5" />}
+            {stepName === "age" && (
+              <div className="w-full">
+                <div className="text-5xl font-black text-bark mb-4 font-display">{age}</div>
+                <input
+                  type="range"
+                  min="10"
+                  max="100"
+                  value={age}
+                  onChange={(e) => setAge(Number(e.target.value))}
+                  className="w-full h-2 bg-clay rounded-full appearance-none cursor-pointer accent-coral"
+                />
+              </div>
+            )}
+
+            {stepName === "weight" && (
+              <div className="w-full">
+                <div className="text-5xl font-black text-bark mb-4 font-display">{weight} <span className="text-2xl text-bark-light/40 font-bold">kg</span></div>
+                <input
+                  type="range"
+                  min="30"
+                  max="150"
+                  value={weight}
+                  onChange={(e) => setWeight(Number(e.target.value))}
+                  className="w-full h-2 bg-clay rounded-full appearance-none cursor-pointer accent-sage"
+                />
+              </div>
+            )}
+
+            {stepName === "height" && (
+              <div className="w-full">
+                <div className="text-5xl font-black text-bark mb-4 font-display">{height} <span className="text-2xl text-bark-light/40 font-bold">cm</span></div>
+                <input
+                  type="range"
+                  min="100"
+                  max="220"
+                  value={height}
+                  onChange={(e) => setHeight(Number(e.target.value))}
+                  className="w-full h-2 bg-clay rounded-full appearance-none cursor-pointer accent-peach"
+                />
+              </div>
+            )}
+
+            {stepName === "gender" && (
+              <div className="flex gap-4 w-full">
+                {(["male", "female", "other"] as const).map((g) => (
+                  <button
+                    key={g}
+                    onClick={() => setGender(g)}
+                    className={`flex-1 p-4 rounded-2xl border-2 transition-all ${
+                      gender === g
+                        ? "border-coral bg-coral/10 text-coral shadow-lg shadow-coral/20"
+                        : "border-clay/50 bg-white text-bark-light/60 hover:border-clay hover:bg-sand"
+                    }`}
+                  >
+                    <span className="block text-2xl mb-1 capitalize">
+                      {g === "male" ? "👨" : g === "female" ? "👩" : "🧑"}
+                    </span>
+                    <span className="font-bold text-sm capitalize">{g}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <Button
+            onClick={nextStep}
+            disabled={stepName === "gender" && !gender}
+            className="w-full h-14 rounded-2xl bg-bark text-white font-bold text-lg shadow-xl shadow-bark/20 hover:bg-bark-light hover:scale-[1.02] active:scale-[0.98] transition-all"
+          >
+            {isWelcome ? "Let's Go" : currentStep === steps.length - 1 ? "Finish Setup" : "Next"}
+            {!isWelcome && <ArrowRight className="w-5 h-5 ml-2" />}
+          </Button>
+
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
