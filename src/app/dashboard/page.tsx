@@ -30,21 +30,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     setMounted(true);
-
-    // ELITE SIMULATION: Background activity sync
-    const interval = setInterval(() => {
-       const state = useStore.getState();
-       if (state.user.isPassiveSyncEnabled) {
-          // Add 10-20 steps every 10 seconds
-          const extraSteps = Math.floor(Math.random() * 10) + 10;
-          state.updatePassiveData({
-             steps: (state.user.passiveData?.steps || 0) + extraSteps,
-             heartRate: 70 + Math.floor(Math.random() * 10)
-          });
-       }
-    }, 10000);
-
-    return () => clearInterval(interval);
   }, []);
 
   // ROUTE GUARD: Redirect if not onboarded

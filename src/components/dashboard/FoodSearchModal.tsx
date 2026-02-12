@@ -31,12 +31,13 @@ export default function FoodSearchModal({ isOpen, onClose }: FoodSearchModalProp
   }, [isOpen]);
 
   const startListening = () => {
-    if (!('webkitSpeechRecognition' in window)) {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
       showToast("❌ Voice not supported in this browser");
       return;
     }
 
-    const SpeechRecognition = (window as any).webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
     recognition.interimResults = false;
@@ -49,13 +50,24 @@ export default function FoodSearchModal({ isOpen, onClose }: FoodSearchModalProp
 
     recognition.onend = () => setIsListening(false);
 
+    recognition.onerror = (event: any) => {
+      console.error("Speech error", event.error);
+      setIsListening(false);
+      showToast("❌ Voice error: " + event.error);
+    };
+
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
       setQuery(transcript);
       handleSearch(undefined, transcript);
     };
 
-    recognition.start();
+    try {
+      recognition.start();
+    } catch (err) {
+      console.error("Microphone access error", err);
+      showToast("❌ Microphone access denied or blocked");
+    }
   };
 
   const handleSearch = async (e?: React.FormEvent, overrideQuery?: string) => {
