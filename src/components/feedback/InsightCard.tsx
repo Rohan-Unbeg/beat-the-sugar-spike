@@ -18,6 +18,22 @@ export default function InsightCard() {
 
   useEffect(() => {
     async function loadInsight() {
+      // Prevent frequent regeneration (Cost Optimization)
+      const lastRun = sessionStorage.getItem("last_insight_gen");
+      const lastSteps = Number(sessionStorage.getItem("last_insight_steps") || 0);
+      const currentSteps = user.passiveData?.steps || 0;
+      
+      const timeDiff = lastRun ? Date.now() - Number(lastRun) : Infinity;
+      const stepDiff = Math.abs(currentSteps - lastSteps);
+
+      // Only run if: 
+      // 1. It's been > 10 minutes OR 
+      // 2. Steps changed by > 500 OR 
+      // 3. User just logged a new meal (logs length changed)
+      if (timeDiff < 1000 * 60 * 10 && stepDiff < 500 && logs.length === (user as any).lastLogCount) {
+        return; 
+      }
+
       setIsGenerating(true);
       
       const heightInMeters = (user.height || 170) / 100;
@@ -31,7 +47,7 @@ export default function InsightCard() {
       const ctx = {
         age: user.age || 25,
         bmi,
-        steps: user.passiveData?.steps || 0,
+        steps: currentSteps,
         heartRate: user.passiveData?.heartRate || 72,
         sleepHours: user.passiveData?.sleepHours || 8,
         timeOfDay: new Date().getHours(),
@@ -46,6 +62,12 @@ export default function InsightCard() {
           const aiResult = await generatePersonalizedInsight(ctx);
           if (aiResult) {
             setInsight(aiResult);
+            
+            // Update session tracking
+            sessionStorage.setItem("last_insight_gen", Date.now().toString());
+            sessionStorage.setItem("last_insight_steps", currentSteps.toString());
+            setUser({ lastLogCount: logs.length } as any);
+
             if (!user.uid) {
                setUser({ freeTrialsUsed: freeTrialsUsed + 1 } as any);
             }
@@ -63,8 +85,10 @@ export default function InsightCard() {
       setActionCompleted(false);
     }
 
-    loadInsight();
-  }, [logs, user.passiveData?.steps, user.uid, user.height, user.weight]);
+    // Debounce the effect slightly
+    const timeout = setTimeout(loadInsight, 2000);
+    return () => clearTimeout(timeout);
+  }, [logs.length, user.passiveData?.steps, user.uid]);
 
   const handleActionComplete = () => {
     if (actionCompleted) return;
