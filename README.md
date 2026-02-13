@@ -43,51 +43,80 @@ The following table outlines the development status of core and advanced feature
 
 ---
 
-## 🛠️ Technical Stack
+## 🧠 AI & ML Architecture
 
-- **Frontend Framework**: Next.js 15 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS 4.0, Framer Motion
-- **State Management**: Zustand (with Persist middleware)
-- **Backend & Auth**: Firebase (Firestore, Anonymous Auth, Google Auth)
-- **AI Inference**: Groq SDK (Llama-3.3-70B)
+SugarSync uses a **Multi-Layered Intelligence Engine** to ensure 100% reliability and accurate nutritional analysis:
+
+1.  **Primary Layer: Google Gemini 2.5 Flash** (v1beta)
+    -   Handles complex natural language queries (e.g., "I just ate a heavy aloo paratha breakfast").
+    -   Extracts structured JSON: `{ name, sugar_g, category, icon }`.
+2.  **Fallback Layer: Groq (Llama-3.3-70B)**
+    -   Activates instantly if Gemini rate limits or fails.
+    -   Provides high-speed inference for redundant reliability.
+3.  **Database Layer: OpenFoodFacts API**
+    -   If LLMs fail, the system queries the global OpenFoodFacts database for exact product matches.
+4.  **Context Engine (Rule-Based ML)**
+    -   Synthesizes user biometrics (BMI, Age, Gender) + Real-time Activity (Simulated Steps/HR) to generate hyper-personalized insights.
+    -   *Example*: "Your heart rate is high (110bpm) after that sugary donut. Insulin spike detected."
 
 ---
 
-## 🏃 Local Development
+## 🛠️ Technical Stack
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/Rohan-Unbeg/beat-the-sugar-spike.git
-   cd beat-the-sugar-spike
-   ```
+-   **Frontend**: Next.js 15 (App Router), React 19, TypeScript
+-   **Styling**: Tailwind CSS 4.0, Framer Motion (Animations), Lucide React (Icons)
+-   **State Management**: Zustand (Persisted Store)
+-   **Backend**: Firebase (Firestore, Anonymous Auth)
+-   **AI/LLM**: Google Gemini API, Groq SDK, OpenFoodFacts API
+-   **Automation**: Puppeteer (for automated demo generation)
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+---
 
-3. **Environment Configuration**
-   Create a `.env.local` file in the root directory:
-   ```env
-   NEXT_PUBLIC_GROQ_API_KEY=your_groq_api_key
-   NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
-   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_bucket
-   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-   NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-   ```
+## 🚀 Deployment Instructions
 
-4. **Start the development server**
-   ```bash
-   npm run dev
-   ```
+This project is optimized for deployment on **Vercel**.
+
+1.  **Push to GitHub**: Ensure your repository is up to date.
+2.  **Import to Vercel**: Connect your GitHub repo to Vercel.
+3.  **Environment Variables**: Add the following in Vercel Project Settings:
+    -   `NEXT_PUBLIC_GEMINI_API_KEY`
+    -   `NEXT_PUBLIC_GROQ_API_KEY`
+    -   `NEXT_PUBLIC_FIREBASE_API_KEY`
+    -   `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+    -   `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+    -   `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+    -   `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+    -   `NEXT_PUBLIC_FIREBASE_APP_ID`
+4.  **Deploy**: Click "Deploy". The app will be live in <1 minute.
+
+---
+
+## 🏃 Local Setup
+
+1.  **Clone & Install**
+    ```bash
+    git clone https://github.com/Rohan-Unbeg/beat-the-sugar-spike.git
+    cd beat-the-sugar-spike
+    npm install
+    ```
+
+2.  **Configure Env**
+    Rename `.env.example` to `.env.local` and add your API keys.
+
+3.  **Run Development Server**
+    ```bash
+    npm run dev
+    ```
+
+4.  **Run Automated Demo** (Optional)
+    ```bash
+    node scripts/record_demo.js
+    ```
 
 ---
 
 ## 👥 Contributors
 
-- **Rohan Unbeg** - Full Stack Engineering & AI Integration
+-   **Rohan Unbeg** - Full Stack Engineering & AI Integration
 
-*Submitted for M-Code Hackathon 2026*
+*Submitted for Hackathon 2026*
