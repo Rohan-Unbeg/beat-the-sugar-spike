@@ -15,7 +15,7 @@ const outfit = Outfit({
 
 
 export const metadata: Metadata = {
-  title: "Beat the Sugar Spike — Track, Win, Live Better",
+  title: "SugarSync — Track, Win, Live Better",
   description: "Track your sugar intake instantly and get real-time, context-aware health nudges. Build streaks, earn XP, and level up your lifestyle.",
   keywords: ["sugar tracker", "health", "gamification", "wellness", "habit tracker"],
 };

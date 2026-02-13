@@ -67,7 +67,7 @@ export default function Home() {
               <path d="M12 22v-4" />
             </svg>
           </div>
-          <span className="font-display font-bold text-bark text-lg tracking-tight">SugarSpike</span>
+          <span className="font-display font-bold text-bark text-lg tracking-tight">SugarSync</span>
         </div>
         <Link
           href="/onboarding"
