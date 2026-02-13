@@ -10,6 +10,7 @@ export default function Home() {
   const { user } = useStore();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [showDemo, setShowDemo] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => {
@@ -119,11 +120,11 @@ export default function Home() {
                     Start free — 30s setup
                   </motion.button>
                 </Link>
-                <Link href="/dashboard">
-                  <button className="w-full sm:w-auto px-6 py-3.5 rounded-2xl border-2 border-clay text-bark-light font-semibold text-base hover:bg-sand transition-colors">
-                    See the demo
-                  </button>
-                </Link>
+                <button 
+                  onClick={() => setShowDemo(true)}
+                  className="w-full sm:w-auto px-6 py-3.5 rounded-2xl border-2 border-clay text-bark-light font-semibold text-base hover:bg-sand transition-colors">
+                    Watch the demo
+                </button>
               </div>
 
               {/* Social proof */}
@@ -305,6 +306,34 @@ export default function Home() {
       <footer className="relative z-10 text-center py-8 text-xs text-bark-light/40">
         Built with 💛 for healthier habits
       </footer>
+      {/* Demo Video Modal */}
+      {showDemo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-bark/80 backdrop-blur-sm p-4" onClick={() => setShowDemo(false)}>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="relative w-full max-w-4xl aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border border-white/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button 
+              onClick={() => setShowDemo(false)}
+              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/50 text-white hover:bg-white/20 transition-colors backdrop-blur-md"
+            >
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+            </button>
+            <iframe 
+              width="100%" 
+              height="100%" 
+              src="https://www.youtube.com/embed/JP4atOTBJS0?autoplay=1&rel=0" 
+              title="SugarSync Demo" 
+              frameBorder="0" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              allowFullScreen 
+            />
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
