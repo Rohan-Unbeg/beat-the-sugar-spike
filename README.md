@@ -2,6 +2,8 @@
 
 **Real-Time, Context-Aware Health Nudges for Sugar Reduction**
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Vercel-black?logo=vercel&style=for-the-badge)](https://beat-the-sugar-spike.vercel.app/)
+
 Beat the Sugar Spike is a web application designed to bridge the gap between daily sugar consumption and immediate health awareness. By leveraging real-time logging, simulated biometric data, and AI-driven insights, it helps users build healthier habits through instant feedback loops rather than delayed metrics.
 
 ---
