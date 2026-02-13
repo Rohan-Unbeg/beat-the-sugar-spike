@@ -74,7 +74,7 @@ SugarSync uses a **Multi-Layered Intelligence Engine** to ensure 100% reliabilit
 -   **State Management**: Zustand (Persisted Store)
 -   **Backend**: Firebase (Firestore, Anonymous Auth)
 -   **AI/LLM**: Google Gemini API, Groq SDK, OpenFoodFacts API
--   **Automation**: Puppeteer (for automated demo generation)
+
 
 ---
 
@@ -114,10 +114,6 @@ This project is optimized for deployment on **Vercel**.
     npm run dev
     ```
 
-4.  **Run Automated Demo** (Optional)
-    ```bash
-    node scripts/record_demo.js
-    ```
 
 ---
 
