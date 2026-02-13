@@ -13,7 +13,7 @@ const outfit = Outfit({
   subsets: ["latin"],
 });
 
-#we need a better name 
+
 export const metadata: Metadata = {
   title: "Beat the Sugar Spike — Track, Win, Live Better",
   description: "Track your sugar intake instantly and get real-time, context-aware health nudges. Build streaks, earn XP, and level up your lifestyle.",
