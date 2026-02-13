@@ -117,22 +117,27 @@ export default function OnboardingFlow() {
             <h2 className="font-display font-black text-3xl text-bark mb-4 text-center">Identity.</h2>
             <p className="text-bark-light/60 font-medium mb-8 text-center uppercase text-[10px] tracking-widest">Select your gender</p>
             
-            <div className="grid grid-cols-1 gap-3">
-              {["male", "female", "other"].map((g) => (
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { id: "male", label: "Male", icon: "👨" },
+                { id: "female", label: "Female", icon: "👩" },
+                { id: "other", label: "Other", icon: "🌈" }
+              ].map((item) => (
                 <button
-                  key={g}
+                  key={item.id}
                   onClick={() => {
-                    updateData("gender", g);
+                    updateData("gender", item.id);
                     setTimeout(nextStep, 300);
                   }}
                   className={cn(
-                    "p-6 rounded-3xl border-2 font-bold capitalize transition-all text-xl",
-                    formData.gender === g
+                    "p-4 rounded-3xl border-2 font-bold capitalize transition-all flex flex-col items-center gap-2",
+                    formData.gender === item.id
                       ? "border-coral bg-coral text-white shadow-xl scale-105"
                       : "border-clay/10 bg-white text-bark-light hover:border-clay/30"
                   )}
                 >
-                  {g}
+                  <span className="text-3xl">{item.icon}</span>
+                  <span className="text-sm">{item.label}</span>
                 </button>
               ))}
             </div>
@@ -216,22 +221,10 @@ export default function OnboardingFlow() {
             <h2 className="font-display font-black text-3xl text-bark mb-8">Current Weight</h2>
             
             <div className="flex items-center justify-center gap-2 mb-8">
-              <button 
-                onClick={() => updateData("weight", Math.max(30, formData.weight - 1))}
-                className="w-12 h-12 rounded-full border-2 border-clay/10 flex items-center justify-center text-2xl font-bold text-bark hover:bg-sand"
-              >
-                -
-              </button>
               <div className="w-40 text-center">
                 <span className="text-6xl font-black text-bark tracking-tighter">{formData.weight}</span>
                 <span className="text-xl font-bold text-bark-light/40 ml-1">kg</span>
               </div>
-              <button 
-                onClick={() => updateData("weight", Math.min(200, formData.weight + 1))}
-                className="w-12 h-12 rounded-full border-2 border-clay/10 flex items-center justify-center text-2xl font-bold text-bark hover:bg-sand"
-              >
-                +
-              </button>
             </div>
 
             <input
