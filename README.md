@@ -4,7 +4,11 @@
 
 [![Live Demo](https://img.shields.io/badge/Live_Demo-Vercel-black?logo=vercel&style=for-the-badge)](https://beat-the-sugar-spike.vercel.app/) [![Watch the Demo](https://img.shields.io/badge/Watch_Demo-YouTube-red?logo=youtube&style=for-the-badge)](http://youtube.com/watch?v=JP4atOTBJS0)
 
-[![SugarSync Demo](https://img.youtube.com/vi/JP4atOTBJS0/0.jpg)](http://youtube.com/watch?v=JP4atOTBJS0)
+SugarSync Demo Video
+
+https://github.com/user-attachments/assets/09a76c10-d0fa-4412-ae0b-a1e8179462fd
+
+You can also watch it on Youtube [here](https://www.youtube.com/watch?v=JP4atOTBJS0).
 
 SugarSync is a web application designed to bridge the gap between daily sugar consumption and immediate health awareness. By leveraging real-time logging, simulated biometric data, and AI-driven insights, it helps users build healthier habits through instant feedback loops rather than delayed metrics.
 
