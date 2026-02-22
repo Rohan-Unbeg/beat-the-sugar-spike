@@ -6,13 +6,19 @@ import {
   GoogleAuthProvider,
   onAuthStateChanged,
   linkWithPopup,
-  linkWithRedirect,
   signOut as firebaseSignOut,
   type User,
+  type UserCredential,
 } from "firebase/auth";
 import { auth } from "./firebase";
 
 const googleProvider = new GoogleAuthProvider();
+
+export interface AuthResult {
+  success: boolean;
+  user?: User;
+  error?: string;
+}
 
 // Sign in anonymously — called on app load
 export async function signInAnon(): Promise<User | null> {
@@ -27,60 +33,35 @@ export async function signInAnon(): Promise<User | null> {
 }
 
 // Sign in with Google — tries popup first, falls back to redirect
-export async function signInWithGoogle(): Promise<{ success: boolean; user?: User; error?: string }> {
+export async function signInWithGoogle(): Promise<AuthResult> {
   console.log("[Auth] signInWithGoogle EXECUTED");
   try {
     const currentUser = auth.currentUser;
 
-    // If anonymous, we USED to try linking with Google to preserve data.
-    // However, `linkWithPopup` is notoriously flaky (hangs, blocked by browsers).
-    // For stability, we heavily prefer direct sign-in. This may orphan the anon session, 
-    // but ensures the user can actually get into their account.
-    /* 
-    if (currentUser && currentUser.isAnonymous) {
-      // ... linking logic ...
-    }
-    */
-    const shouldLink = false; // Force false to skip flaky linking
+    // For stability in hackathon, we skip flaky linking and prefer direct sign-in.
+    // This ensures users can always access their account even if anon data is lost.
+    const shouldLink = false; 
     if (currentUser && currentUser.isAnonymous && shouldLink) {
-      console.log("[Auth] Attempting to link anonymous account (isAnonymous: true)...");
+      console.log("[Auth] Attempting to link anonymous account...");
       try {
-        console.log("[Auth] Calling linkWithPopup...");
-        
-        // RACE: Link or Timeout (4s)
-        // Sometimes linkWithPopup hangs if the browser blocks it weirdly or network is flaky
         const linkPromise = linkWithPopup(currentUser, googleProvider);
-        const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => {
-                console.log("[Auth] linkWithPopup TIMED OUT (4s). Rejecting...");
-                reject(new Error("TIMEOUT"));
-            }, 4000)
+        const timeoutPromise = new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error("TIMEOUT")), 4000)
         );
 
-        const result: any = await Promise.race([linkPromise, timeoutPromise]);
+        const result = await Promise.race([linkPromise, timeoutPromise]) as UserCredential;
         
-        console.log("[Auth] Anonymous → Google upgrade success via POPUP:", result.user.uid);
+        console.log("[Auth] Anonymous → Google upgrade success:", result.user.uid);
         return { success: true, user: result.user };
       } catch (linkError: any) {
-        console.warn("[Auth] Link failed (popup/timeout):", linkError);
-
-        // DEBUG: Alert using window.alert (if available) to pause before potential refresh
-        if (typeof window !== 'undefined') {
-             window.alert(`DEBUG: Link failed: ${linkError.message || linkError}`);
-        }
-        
-        // If it was a generic error, timeout, or blocked popup, we try to recover
-        // FALLBACK: Just sign in directly (might orphan anon data, but better than being stuck)
-        console.log("[Auth] Fallback: Switching to direct signInWithPopup (ignoring linking)...");
+        console.warn("[Auth] Link failed, falling back to direct sign-in:", linkError);
         
         try {
             const result = await signInWithPopup(auth, googleProvider);
-            console.log("[Auth] Direct sign-in success (fallback):", result.user.uid);
             return { success: true, user: result.user };
         } catch (directErr: any) {
-             console.error("[Auth] Direct sign-in fallback also failed:", directErr);
+             console.error("[Auth] Fallback sign-in failed:", directErr);
              if (directErr.code === "auth/popup-blocked") {
-                 console.log("[Auth] One last try: Redirect...");
                  await signInWithRedirect(auth, googleProvider);
                  return { success: true };
              }
@@ -90,46 +71,35 @@ export async function signInWithGoogle(): Promise<{ success: boolean; user?: Use
     }
 
     // Direct Google sign-in
-    console.log("[Auth] Starting direct Google sign-in (NO anonymous user or linking skipped)...");
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      console.log("[Auth] Google sign-in success via POPUP. UID:", result.user.uid, "IsAnon:", result.user.isAnonymous);
       return { success: true, user: result.user };
     } catch (popupError: any) {
-      console.error("[Auth] Direct sign-in failed (popup):", popupError);
       if (popupError.code === "auth/popup-blocked") {
-        console.log("[Auth] Direct sign-in fallback to redirect...");
         await signInWithRedirect(auth, googleProvider);
         return { success: true };
       }
       throw popupError;
     }
   } catch (error: any) {
-    console.error("[Auth] Google sign-in CRITICAL failure:", error);
+    console.error("[Auth] Google sign-in failure:", error);
     if (error.code === "auth/popup-closed-by-user") {
       return { success: false, error: "Sign-in cancelled" };
     }
-    return { success: false, error: "Sign-in failed. Try again." };
+    return { success: false, error: error.message || "Sign-in failed. Try again." };
   }
 }
 
 // Check for redirect result on page load
-// Check for redirect result on page load
 export async function handleRedirectResult(): Promise<User | null> {
-  console.log("[Auth] Checking implementation of getRedirectResult...");
   try {
     const result = await getRedirectResult(auth);
     if (result?.user) {
-      console.log("[Auth] Redirect sign-in success:", result.user.uid, "IsAnon:", result.user.isAnonymous);
       return result.user;
     }
-    console.log("[Auth] No redirect result found.");
     return null;
   } catch (error: any) {
     console.error("[Auth] Redirect result error:", error);
-    if (error.code === 'auth/credential-already-in-use') {
-       console.log("[Auth] Redirect failed: Credential in use. This needs manual handling in UI.");
-    }
     return null;
   }
 }

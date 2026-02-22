@@ -45,7 +45,6 @@ export default function ProfilePage() {
     setLoading(false);
     if (result.success) {
       showToast("🎉 Signed in successfully!");
-      await syncToFirestore().catch(() => {});
     } else if (result.error) {
       showToast(`❌ ${result.error}`);
     }

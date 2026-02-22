@@ -58,10 +58,16 @@ interface AppState {
   getTodaysLogs: () => SugarLog[];
   syncToFirestore: () => Promise<void>;
   loadFromFirestore: (uid: string) => Promise<void>;
+  validateStreak: () => void;
   resetStore: () => void;
 }
 
-const getDateStr = (d: Date) => d.toISOString().split('T')[0];
+const getDateStr = (d: Date) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 export const useStore = create<AppState>()(
   persist(
@@ -108,6 +114,12 @@ export const useStore = create<AppState>()(
         })),
       addLog: (log) =>
         set((state) => {
+          // Validation: Ensure amount is valid
+          if (log.amount <= 0) {
+            console.warn("[Store] Ignoring log with zero or negative amount:", log.amount);
+            return state;
+          }
+
           const today = getDateStr(new Date());
           const lastLog = state.user.lastLogDate;
           let newStreak = state.user.streak;
@@ -125,7 +137,7 @@ export const useStore = create<AppState>()(
           const newState = {
             logs: [
               ...state.logs,
-              { ...log, id: Math.random().toString(36).substr(2, 9) },
+              { ...log, id: Math.random().toString(36).substring(2, 9) },
             ],
             user: {
               ...state.user,
@@ -190,7 +202,7 @@ export const useStore = create<AppState>()(
       syncToFirestore: async () => {
         const state = get();
         const uid = state.user.uid;
-        if (!uid) return;
+        if (!uid || state.isLoading) return;
 
         // Debounce/Race protection: If already syncing, we might want to let it finish or just set flag
         set({ isSyncing: true });
@@ -279,6 +291,23 @@ export const useStore = create<AppState>()(
           // With persistence, even if this fails, we likely have the local store data.
         } finally {
           set({ isLoading: false });
+          // Ensure streak is valid on load
+          get().validateStreak();
+        }
+      },
+      validateStreak: () => {
+        const state = get();
+        const lastLog = state.user.lastLogDate;
+        if (!lastLog || state.user.streak === 0) return;
+
+        const today = getDateStr(new Date());
+        const yesterday = getDateStr(new Date(Date.now() - 86400000));
+
+        // If last log was before yesterday, streak is broken
+        if (lastLog !== today && lastLog !== yesterday) {
+          console.log("[Store] Streak broken! Last log was:", lastLog);
+          set((state) => ({ user: { ...state.user, streak: 0 } }));
+          setTimeout(() => get().syncToFirestore(), 100);
         }
       },
       resetStore: () => {
