@@ -1,1 +1,64 @@
-import { useNavigation } from 'next/navigation';import { useState } from 'react';import { Button } from 'src/components/ui/button';import { InsightCard } from 'src/components/feedback/InsightCard';import { DailyStats } from 'src/components/dashboard/DailyStats';import { DataSyncSimulator } from 'src/components/dashboard/DataSyncSimulator';import { FoodSearchModal } from 'src/components/dashboard/FoodSearchModal';import { HealthSyncPrompt } from 'src/components/dashboard/HealthSyncPrompt';import { Leaderboard } from 'src/components/dashboard/Leaderboard';import { ScenarioSelector } from 'src/components/dashboard/ScenarioSelector';import { StreakReminder } from 'src/components/dashboard/StreakReminder';import { SugarLogger } from 'src/components/dashboard/SugarLogger';import { motion } from 'framer-motion';import { AiOutlinePlus } from 'lucide-react';export default function DashboardPage() {const navigation = useNavigation();const [isModalOpen, setIsModalOpen] = useState(false);const handleOpenModal = () => {setIsModalOpen(true);};const handleCloseModal = () => {setIsModalOpen(false);};return (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className='flex flex-col h-screen p-4 md:p-6 lg:p-8'> <div className='flex justify-between items-center mb-4'> <h1 className='text-3xl font-bold'>Dashboard</h1> <Button onClick={handleOpenModal} className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'> <AiOutlinePlus size={20} className='mr-2' /> Add New Entry </Button> </div> <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4'> <InsightCard title='Daily Stats' subtitle='Your daily progress'> <DailyStats /> </InsightCard> <InsightCard title='Data Sync' subtitle='Sync your data with our servers'> <DataSyncSimulator /> </InsightCard> <InsightCard title='Leaderboard' subtitle='Compete with other users'> <Leaderboard /> </InsightCard> </div> <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4'> <InsightCard title='Food Search' subtitle='Search for food items'> <FoodSearchModal isOpen={isModalOpen} onClose={handleCloseModal} /> </InsightCard> <InsightCard title='Health Sync' subtitle='Sync your health data'> <HealthSyncPrompt /> </InsightCard> <InsightCard title='Scenario Selector' subtitle='Select a scenario'> <ScenarioSelector /> </InsightCard> </div> <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4'> <InsightCard title='Streak Reminder' subtitle='Your current streak'> <StreakReminder /> </InsightCard> <InsightCard title='Sugar Logger' subtitle='Log your sugar intake'> <SugarLogger /> </InsightCard> </div> </motion.div>);}
+import { motion } from 'framer-motion';
+import { PlusCircle, Activity, HeartPulse, Trophy } from 'lucide-react';
+import Link from 'next/link';
+
+export default function DashboardPage() {
+  return (
+    <div className="flex flex-col min-h-screen p-4 md:p-8 bg-gray-50 dark:bg-zinc-950">
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Overview Dashboard</h1>
+          <p className="text-zinc-500 dark:text-zinc-400 mt-1">Monitor your metabolic health and daily stats.</p>
+        </div>
+        <Link href="/log" className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-5 rounded-lg flex items-center transition-all shadow-sm">
+          <PlusCircle size={18} className="mr-2" /> 
+          Log Sugar
+        </Link>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {/* Stat Cards */}
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+          <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
+            <h3 className="font-semibold text-zinc-700 dark:text-zinc-300">Daily Average</h3>
+            <Activity className="text-blue-500" size={20} />
+          </div>
+          <div className="pt-4">
+            <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">92 <span className="text-lg font-normal text-zinc-500">mg/dL</span></p>
+            <p className="text-sm text-emerald-500 mt-1 flex items-center">↓ 4% from last week</p>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+          <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
+            <h3 className="font-semibold text-zinc-700 dark:text-zinc-300">Time in Range</h3>
+            <HeartPulse className="text-emerald-500" size={20} />
+          </div>
+          <div className="pt-4">
+            <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">88<span className="text-lg font-normal text-zinc-500">%</span></p>
+            <p className="text-sm text-zinc-500 mt-1 flex items-center">Target: &gt;70%</p>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+          <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
+            <h3 className="font-semibold text-zinc-700 dark:text-zinc-300">Current Streak</h3>
+            <Trophy className="text-amber-500" size={20} />
+          </div>
+          <div className="pt-4">
+            <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">14 <span className="text-lg font-normal text-zinc-500">Days</span></p>
+            <p className="text-sm text-zinc-500 mt-1 flex items-center">Keep it up!</p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Chart Section Placeholder */}
+      <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex-1 min-h-[300px] flex flex-col">
+         <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-6 border-b border-zinc-100 dark:border-zinc-800 pb-4">Glucose Trends</h3>
+         <div className="flex-1 flex items-center justify-center bg-zinc-50 dark:bg-zinc-950/50 rounded-lg border border-dashed border-zinc-200 dark:border-zinc-800">
+            <p className="text-zinc-400">Chart rendering synchronized...</p>
+         </div>
+      </div>
+    </div>
+  );
+}
