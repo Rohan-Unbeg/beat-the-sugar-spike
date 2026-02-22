@@ -46,6 +46,7 @@ interface AppState {
   isLoading: boolean;
   setUser: (data: Partial<UserProfile>) => void;
   addLog: (log: Omit<SugarLog, 'id'>) => void;
+  removeLog: (id: string) => void;
   incrementStreak: () => void;
   resetStreak: () => void;
   addScore: (points: number) => void;
@@ -136,6 +137,14 @@ export const useStore = create<AppState>()(
           // Fire-and-forget Firestore sync after state update
           setTimeout(() => get().syncToFirestore(), 100);
 
+          return newState;
+        }),
+      removeLog: (id: string) =>
+        set((state) => {
+          const newState = {
+            logs: state.logs.filter((log) => log.id !== id),
+          };
+          setTimeout(() => get().syncToFirestore(), 100);
           return newState;
         }),
       incrementStreak: () =>
