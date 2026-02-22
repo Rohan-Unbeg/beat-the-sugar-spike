@@ -22,6 +22,14 @@ import FoodSearchModal from "@/components/dashboard/FoodSearchModal";
 import ScenarioSelector from "@/components/dashboard/ScenarioSelector";
 import StreakReminder from "@/components/dashboard/StreakReminder";
 
+const FOOD_ICONS: Record<string, string> = {
+  tea_coffee: "☕",
+  soft_drink: "🥤",
+  sweet: "🍩",
+  energy: "⚡",
+};
+
+
 export default function Dashboard() {
   const { user, logs, isLoading, removeLog, showToast } = useStore();
   const [mounted, setMounted] = useState(false);
@@ -90,14 +98,14 @@ export default function Dashboard() {
               {/* Name Skeleton or Text */}
               {user.displayName ? (
                 <h1 className="font-display font-bold text-lg text-bark leading-none animate-in fade-in duration-500">
-                  {`Hey, ${user.displayName.split(" ")[0]}`}
+                  {greeting}
                 </h1>
               ) : isLoading ? (
                 <Skeleton className="h-5 w-32 mt-1" />
               ) : (
                 <div className="flex flex-col items-start">
                   <h1 className="font-display font-bold text-lg text-bark leading-none animate-in fade-in duration-500">
-                    Hello, Friend
+                    {greeting}
                   </h1>
                   <button
                     onClick={() => {
@@ -179,11 +187,7 @@ export default function Dashboard() {
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-sand/50 flex items-center justify-center text-lg">
-                      {/* Simple icon mapping based on type */}
-                      {log.type === "tea_coffee" ? "☕" :
-                        log.type === "soft_drink" ? "🥤" :
-                          log.type === "sweet" ? "🍩" :
-                            log.type === "energy" ? "⚡" : "🍪"}
+                      {FOOD_ICONS[log.type] || "🍪"}
                     </div>
                     <div>
                       <p className="font-bold text-bark text-sm">{log.label || log.type}</p>
