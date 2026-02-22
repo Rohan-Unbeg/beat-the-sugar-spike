@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/lib/store";
 import { ChevronRight, Check, Dumbbell, User, Ruler, Weight } from "lucide-react";
@@ -24,8 +24,15 @@ interface FormData {
 
 export default function OnboardingFlow() {
   const router = useRouter();
-  const { setUser, user } = useStore();
+  const { setUser, user, isLoading } = useStore();
   const [step, setStep] = useState(0);
+
+  // ROUTE GUARD: If data sync finishes and reveals user is already onboarded, bump to dashboard
+  useEffect(() => {
+    if (user.isOnboarded && !isLoading) {
+      router.replace("/dashboard");
+    }
+  }, [user.isOnboarded, isLoading, router]);
   
   // Local state for smooth transitions before committing to store
   const [formData, setFormData] = useState<FormData>({
@@ -49,18 +56,19 @@ export default function OnboardingFlow() {
   const completeOnboarding = () => {
     // Save to global store
     const bmi = Number((formData.weight / ((formData.height / 100) ** 2)).toFixed(1));
-    const anonName = generateAnonName();
+    
+    // Only generate a random name if user is anonymous
+    const nameToUse = user.isAnonymous ? generateAnonName() : user.displayName;
     
     setUser({
       ...user,
-      displayName: anonName,
+      displayName: nameToUse,
       age: formData.age,
       gender: formData.gender,
       height: formData.height,
       weight: formData.weight,
       bmi: bmi,
       isOnboarded: true,
-      isAnonymous: true,
       lastLogDate: new Date().toISOString().split('T')[0] // Initialize streak
     });
 

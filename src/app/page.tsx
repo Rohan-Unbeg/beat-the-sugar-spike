@@ -27,10 +27,15 @@ export default function Home() {
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => {
     if (mounted && !isLoading) {
+      // Redirect logic:
+      // 1. If user is onboarded in store, go to dashboard
+      // 2. If user is logged in (real account), go to onboarding to complete profile
+      // 3. If user is anonymous, stay on landing (or go to onboarding if they click login)
+      
       if (user.isOnboarded) {
         router.push("/dashboard");
       } else if (user.uid && !user.isAnonymous) {
-        // Logged in with a real account but completely new (no DB record of onboarding)
+        // Logged in with a real account but not yet onboarded
         router.push("/onboarding");
       }
     }

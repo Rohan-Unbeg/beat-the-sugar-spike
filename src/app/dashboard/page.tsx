@@ -5,7 +5,7 @@ import { signInWithGoogle } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Flame, Trophy, Clock, ArrowUpRight, Trash2 } from "lucide-react";
+import { Flame, Trophy, Clock, ArrowUpRight, Trash2, Loader2 } from "lucide-react";
 import SugarLogger from "@/components/dashboard/SugarLogger";
 import DailyStats from "@/components/dashboard/DailyStats";
 import RewardModal from "@/components/feedback/RewardModal";
@@ -47,8 +47,21 @@ export default function Dashboard() {
     }
   }, [mounted, isLoading, user.isOnboarded, router]);
 
-  // Prevent flicker: If we aren't onboarded, or still loading first boot, show nothing
-  if (!mounted || isLoading || !user.isOnboarded) return null;
+  // Prevent flicker: If we aren't onboarded, or still loading first boot, show loading state
+  if (!mounted || isLoading) {
+    return (
+      <div className="min-h-screen bg-warm-white flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-coral" />
+          <p className="text-sm font-medium text-bark-light/60">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If we have an identity but aren't onboarded, the useEffect will handle the redirect.
+  // We return null here to avoid showing dashboard content to non-onboarded users.
+  if (!user.isOnboarded) return null;
 
   // Get today's logs for timeline
   const today = new Date().toDateString();

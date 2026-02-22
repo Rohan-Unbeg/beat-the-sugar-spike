@@ -32,8 +32,19 @@ export default function ProfilePage() {
     }
   }, [mounted, isLoading, user.isOnboarded, router, isSigningOut]);
 
-  // Prevent flicker: If we aren't onboarded, or still loading first boot, show nothing
-  if (!mounted || isLoading || !user.isOnboarded) return null;
+  // Prevent flicker: If still loading, show loading state
+  if (!mounted || isLoading) {
+    return (
+      <div className="min-h-screen bg-warm-white flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-coral" />
+          <p className="text-sm font-medium text-bark-light/60">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user.isOnboarded) return null;
 
   const level = Math.floor(user.score / 50) + 1;
   const isSignedIn = !!user.uid;

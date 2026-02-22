@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
+import { generateMLInsight } from "@/lib/insight-engine";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
@@ -61,10 +62,12 @@ export async function POST(req: Request) {
             "priority": "low" | "medium" | "high"
           }`;
 
-    const userContext = `Context: Age ${ctx.age}, BMI ${Number(ctx.bmi).toFixed(1)}, Steps today: ${ctx.steps}, Sleep last night: ${ctx.sleepHours}h, Current Hour: ${ctx.timeOfDay}, Sugar intake just now: ${ctx.sugarIntake}g, Gender: ${ctx.isMale ? 'Male' : 'Female'}`;
+    const userContext = `Context: Age ${ctx.age}, BMI ${Number(ctx.bmi).toFixed(1)}, Steps today: ${ctx.steps}, Sleep last night: ${ctx.sleepHours}h, Current Hour: ${ctx.timeOfDay}, Total sugar intake today: ${ctx.totalSugarToday}g, Gender: ${ctx.isMale ? 'Male' : 'Female'}`;
 
     if (!GEMINI_API_KEY && !GROQ_API_KEY) {
-      console.error("No AI API keys configured for insights.");
+      console.warn("No AI API keys configured, falling back to ML insights.");
+      // Fallback to ML insight
+      return NextResponse.json(generateMLInsight(ctx));
     } else {
         // 1. Try Gemini
         try {
@@ -111,11 +114,19 @@ export async function POST(req: Request) {
             console.error("Insight Generation Error (Groq):", error);
           }
         }
+        
+        // Both AI services failed, fall back to ML insight
+        console.warn("Both AI services failed, falling back to ML insights.");
+        return NextResponse.json(generateMLInsight(ctx));
     }
-
-    return NextResponse.json({ error: "Failed to generate insight" }, { status: 500 });
   } catch (error) {
     console.error("Internal API Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    // Even on error, try to return something useful
+    try {
+      const ctx = await req.json();
+      return NextResponse.json(generateMLInsight(ctx));
+    } catch {
+      return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    }
   }
 }

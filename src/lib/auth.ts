@@ -7,7 +7,8 @@ import {
   signInWithRedirect,
   getRedirectResult,
   UserCredential,
-  signOut as firebaseSignOut
+  signOut as firebaseSignOut,
+  signInAnonymously
 } from "firebase/auth";
 import app from "./firebase";
 
@@ -24,10 +25,14 @@ export interface AuthResult {
  * This is the default state for new users in SugarSync.
  */
 export async function signInAnon(): Promise<AuthResult> {
-  // SugarSync uses custom guest profiles in the store, 
-  // but we can also use Firebase Anon if needed.
-  // For now, we rely on the store's isAnonymous flag.
-  return { success: true };
+  try {
+    const result = await signInAnonymously(auth);
+    console.log("[Auth] Anonymous sign-in success:", result.user.uid);
+    return { success: true, user: result.user };
+  } catch (error: any) {
+    console.error("[Auth] Anonymous Sign-in Error:", error.message);
+    return { success: false, error: error.message };
+  }
 }
 
 // Sign in with Google — tries popup first, falls back to redirect

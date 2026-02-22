@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, getDocFromCache, getDocFromServer } from 'firebase/firestore';
 import { db } from './firebase';
 
 import { generateAnonName } from './utils';
@@ -46,6 +46,7 @@ interface AppState {
   toastMessage: string | null;
   isSyncing: boolean;
   isLoading: boolean;
+  setIsLoading: (loading: boolean) => void;
   setUser: (data: Partial<UserProfile>) => void;
   addLog: (log: Omit<SugarLog, 'id'>) => void;
   removeLog: (id: string) => void;
@@ -59,7 +60,7 @@ interface AppState {
   clearToast: () => void;
   getTodaysLogs: () => SugarLog[];
   syncToFirestore: () => Promise<void>;
-  loadFromFirestore: (uid: string) => Promise<void>;
+  loadFromFirestore: (uid: string, silent?: boolean) => Promise<void>;
   validateStreak: () => void;
   resetStore: () => void;
 }
@@ -103,6 +104,7 @@ export const useStore = create<AppState>()(
       toastMessage: null,
       isSyncing: false,
       isLoading: true,
+      setIsLoading: (loading) => set({ isLoading: loading }),
       setUser: (data) =>
         set((state) => ({ user: { ...state.user, ...data } })),
       completeOnboarding: () =>
@@ -240,56 +242,85 @@ export const useStore = create<AppState>()(
         }
       },
 
-      loadFromFirestore: async (uid: string) => {
-        set({ isLoading: true });
-        try {
-          const snap = await getDoc(doc(db, 'users', uid));
-          if (snap.exists()) {
-            const data = snap.data();
-            const profile = data.profile || {};
+      loadFromFirestore: async (uid: string, silent: boolean = false) => {
+        if (!silent) set({ isLoading: true });
+        const userDocRef = doc(db, 'users', uid);
+        let retryCount = 0;
+        const maxRetries = 2;
+        
+        const attemptLoad = async (): Promise<boolean> => {
+          try {
+            // 1. Try CACHE first (Instant for returning users)
+            let snap = await getDocFromCache(userDocRef).catch(() => null);
+            console.log(`[Firestore] Cache attempt ${retryCount + 1}, result:`, snap?.exists() ? 'hit' : 'miss');
+            
+            // 2. Fallback to SERVER if cache miss
+            if (!snap || !snap.exists()) {
+              console.log('[Firestore] Cache miss, fetching from server...');
+              
+              try {
+                const serverPromise = getDocFromServer(userDocRef);
+                // More generous timeout on retry, shorter on first attempt
+                const timeoutMs = retryCount === 0 ? 8000 : 12000;
+                const timeoutPromise = new Promise<null>((_, reject) => 
+                  setTimeout(() => reject(new Error('Firestore timeout')), timeoutMs)
+                );
 
-            // Merge cloud data with local state
-            // CRITICAL: Cloud takes priority for STATS (score, streak, logs)
-            // But for IDENTITY (isAnonymous, email, photo, name), we must be careful
-            // not to overwrite our shiny new Google session with an old "Anonymous" record from DB.
-            const current = get().user;
+                snap = await Promise.race([serverPromise, timeoutPromise]) as any;
+              } catch (raceErr: any) {
+                // Server fetch timed out
+                console.warn(`[Firestore] Attempt ${retryCount + 1} timed out:`, raceErr.message);
+                
+                // Retry once more if this is the first attempt
+                if (retryCount < maxRetries) {
+                  retryCount++;
+                  console.log(`[Firestore] Retrying (attempt ${retryCount + 1})...`);
+                  return attemptLoad();
+                }
+                
+                snap = null;
+              }
+            }
 
-            // If our current local state says we are NOT anonymous (e.g. just linked Google),
-            // and the DB says we ARE anonymous (old data), ignore DB's identity fields.
-            const trustLocalIdentity = !current.isAnonymous;
+            if (snap && snap.exists()) {
+              const data = snap.data();
+              const profile = data.profile || {};
+              const current = get().user;
+              const trustLocalIdentity = !current.isAnonymous;
 
-            set({
-              user: {
-                ...current,
-                ...profile,
-                // IDENTITY: Prioritize local if we are "more authenticated" than DB
-                uid,
-                displayName: trustLocalIdentity ? current.displayName : (profile.displayName || current.displayName),
-                email: trustLocalIdentity ? current.email : (profile.email || current.email),
-                photoURL: trustLocalIdentity ? current.photoURL : (profile.photoURL || current.photoURL),
-                isAnonymous: trustLocalIdentity ? false : (profile.isAnonymous ?? current.isAnonymous),
+              set({
+                user: {
+                  ...current,
+                  ...profile,
+                  uid,
+                  displayName: trustLocalIdentity ? current.displayName : (profile.displayName || current.displayName),
+                  email: trustLocalIdentity ? current.email : (profile.email || current.email),
+                  photoURL: trustLocalIdentity ? current.photoURL : (profile.photoURL || current.photoURL),
+                  isAnonymous: trustLocalIdentity ? false : (profile.isAnonymous ?? current.isAnonymous),
+                  lastSeenLevel: profile.lastSeenLevel || 1,
+                },
+                logs: data.logs || [],
+              });
 
-                lastSeenLevel: profile.lastSeenLevel || 1,
-              },
-              logs: data.logs || [],
-            });
-
-            console.log('[Firestore] Synced user data for:', uid);
-          } else {
-            // New user: AuthProvider already generated a name for us.
-            // Just ensure the UID is correct.
+              console.log('[Firestore] Successfully synced user data for:', uid);
+              return true;
+            } else {
+              // No Firestore data - this is a new user
+              console.log('[Firestore] No user document found, new user:', uid);
+              set(state => ({ user: { ...state.user, uid } }));
+              return true; // Still successful, just no data
+            }
+          } catch (err: any) {
+            console.error('[Firestore] Unexpected error:', err.message);
             set(state => ({ user: { ...state.user, uid } }));
-            // Sync our newly generated local state to the cloud.
-            setTimeout(() => get().syncToFirestore(), 1000);
+            return false;
           }
-        } catch (err: any) {
-          console.error('[Firestore] Load error (using local cache):', err);
-          // With persistence, even if this fails, we likely have the local store data.
-        } finally {
-          set({ isLoading: false });
-          // Ensure streak is valid on load
-          get().validateStreak();
-        }
+        };
+
+        await attemptLoad();
+        
+        if (!silent) set({ isLoading: false });
+        get().validateStreak();
       },
       validateStreak: () => {
         const state = get();
