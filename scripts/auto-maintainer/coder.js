@@ -17,17 +17,35 @@ async function main(issueNumber) {
     // Fetch Issue
     const issue = await octokit.rest.issues.get({ owner, repo, issue_number: issueNumber });
     const contextMap = await generateContextMap();
+    
+    let targetFileContent = "";
+    const targetFileMatch = issue.data.body.match(/Target File\s*\n\s*([a-zA-Z0-9_.\-\/]+)/i);
+    if (targetFileMatch && targetFileMatch[1]) {
+        const filePath = targetFileMatch[1].trim();
+        if (fs.existsSync(filePath)) {
+            targetFileContent = `\nExisting content of ${filePath}:\n\`\`\`\n${fs.readFileSync(filePath, 'utf8')}\n\`\`\`\n`;
+        } else {
+            targetFileContent = `\nTarget file ${filePath} does not exist yet. You will create it.\n`;
+        }
+    }
 
     const systemPrompt = `
-    You are 'The Senior Developer' AI.
+    You are 'The 10x Senior Developer' AI.
     Your job is to read an issue and write the precise code string required to solve it.
+    
+    CRITICAL INSTRUCTIONS:
+    1. You are developing a modern Next.js 14 App Router project (use 'next/navigation', NOT 'next/router').
+    2. Use Tailwind CSS for all styling. Create premium, beautiful UI. 
+    3. The project uses React 19, 'lucide-react' for icons, and 'framer-motion'.
+    4. Write production-ready, flawless code avoiding obvious regressions.
+    5. Look at the existing Codebase Map and Target File below to mimic the correct architecture.
     
     Return EXACTLY a JSON structure with an array of files to change/create:
     {
       "files": [
         {
-          "path": "path/to/file.js",
-          "content": "Full new content of the file"
+          "path": "src/path/to/file.tsx",
+          "content": "Full strictly-valid code string. Do NOT use markdown code blocks inside the string."
         }
       ]
     }`;
@@ -38,6 +56,7 @@ async function main(issueNumber) {
     
     Codebase Map (Where things live):
     ${contextMap}
+    ${targetFileContent}
     `;
     
     const response = await callAI(systemPrompt, userPrompt);
