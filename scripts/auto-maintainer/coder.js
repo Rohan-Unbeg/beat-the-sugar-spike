@@ -106,8 +106,9 @@ async function main(issueNumber) {
     `;
     
     const response = await callAI(systemPrompt, userPrompt);
+    console.log("Qwen3-32B Output:", JSON.stringify(response, null, 2));
     
-    if (response && response.files) {
+    if (response && response.files && response.files.length > 0) {
         try {
             const branchName = isPR ? targetBranch : `fix/ai-issue-${issueNumber}-${Date.now().toString().slice(-4)}`;
             console.log(`[Coder] Pushing ${response.files.length} changes to branch ${branchName}...`);
