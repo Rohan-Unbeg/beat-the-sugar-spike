@@ -20,16 +20,17 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const router = useRouter();
 
   useEffect(() => setMounted(true), []);
 
   // ROUTE GUARD: Redirect if not onboarded
   useEffect(() => {
-    if (mounted && !isLoading && !user.isOnboarded) {
+    if (!isSigningOut && mounted && !isLoading && !user.isOnboarded) {
        router.replace("/onboarding");
     }
-  }, [mounted, isLoading, user.isOnboarded, router]);
+  }, [mounted, isLoading, user.isOnboarded, router, isSigningOut]);
 
   // Prevent flicker: If we aren't onboarded, or still loading first boot, show nothing
   if (!mounted || isLoading || !user.isOnboarded) return null;
@@ -51,9 +52,9 @@ export default function ProfilePage() {
   };
 
   const handleSignOut = async () => {
+    setIsSigningOut(true);
     await signOut();
     
-    // Explicitly reset ALL state to defaults
     // Explicitly reset ALL state to defaults
     resetStore();
     

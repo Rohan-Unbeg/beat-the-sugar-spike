@@ -243,13 +243,6 @@ export const useStore = create<AppState>()(
       loadFromFirestore: async (uid: string) => {
         // Since we now have enableMultiTabIndexedDbPersistence,
         // getDoc will return from CACHE immediately if available.
-
-        // OPTIMISTIC LOADING: If we already have a name in memory (from persist), 
-        // don't show a skeleton. Use what we have while we verify with the cloud.
-        if (get().user.displayName) {
-          set({ isLoading: false });
-        }
-
         try {
           const snap = await getDoc(doc(db, 'users', uid));
           if (snap.exists()) {

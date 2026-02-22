@@ -5,12 +5,24 @@ import { motion } from "framer-motion";
 import { useStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { signInWithGoogle } from "@/lib/auth";
+import { Loader2 } from "lucide-react";
 
 export default function Home() {
-  const { user } = useStore();
+  const { user, showToast } = useStore();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  const handleLogin = async () => {
+    setIsLoggingIn(true);
+    const result = await signInWithGoogle();
+    setIsLoggingIn(false);
+    if (!result.success) {
+      showToast(result.error || "Failed to sign in.");
+    }
+  };
 
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => {
@@ -70,12 +82,21 @@ export default function Home() {
           </div>
           <span className="font-display font-bold text-bark text-lg tracking-tight">SugarSync</span>
         </div>
-        <Link
-          href="/onboarding"
-          className="text-sm font-semibold text-bark-light hover:text-bark transition-colors px-4 py-2 rounded-full hover:bg-sand"
-        >
-          Get Started →
-        </Link>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={handleLogin}
+            disabled={isLoggingIn}
+            className="text-sm font-semibold text-bark hover:text-coral transition-colors flex items-center gap-2"
+          >
+            {isLoggingIn && <Loader2 className="w-3 h-3 animate-spin"/>} Login
+          </button>
+          <Link
+            href="/onboarding"
+            className="text-sm font-semibold text-bark-light hover:text-bark transition-colors px-4 py-2 rounded-full hover:bg-sand"
+          >
+            Get Started →
+          </Link>
+        </div>
       </nav>
 
       {/* Hero */}
@@ -126,6 +147,9 @@ export default function Home() {
                     Watch the demo
                 </button>
               </div>
+              <p className="mt-4 text-xs font-semibold text-bark-light/60 text-center lg:text-left">
+                  Already have an account? <button onClick={handleLogin} disabled={isLoggingIn} className="text-coral hover:underline cursor-pointer">Sign In</button>
+              </p>
 
               {/* Social proof */}
               <div className="flex items-center gap-3 mt-8 justify-center lg:justify-start">
