@@ -149,7 +149,7 @@ export async function POST(req: Request) {
                 },
                 {
                   role: "user",
-                  content: query
+                  content: sanitizedQuery
                 }
               ],
               model: "llama-3.3-70b-versatile",
@@ -172,7 +172,7 @@ export async function POST(req: Request) {
     }
 
     // 3. Fallback: OpenFoodFacts
-    const offData = await parseFoodWithOpenFoodFacts(query);
+    const offData = await parseFoodWithOpenFoodFacts(sanitizedQuery);
     if (offData) return NextResponse.json(offData);
 
     return NextResponse.json({ error: "Failed to parse food" }, { status: 500 });
