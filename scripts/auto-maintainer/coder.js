@@ -14,8 +14,36 @@ async function main(issueNumber) {
     if (!issueNumber) return console.log("Coder needs an Issue Number to fix.");
     console.log(`Agent: The Senior Developer picked up Issue #${issueNumber}`);
 
-    // Fetch Issue
-    const issue = await octokit.rest.issues.get({ owner, repo, issue_number: issueNumber });
+    // Check if this is a PR (continuous QA loop) or a new Issue
+    let isPR = false;
+    let targetBranch = null;
+    let issue;
+    let contextInstructions = "";
+
+    try {
+        const { data: prData } = await octokit.rest.pulls.get({ owner, repo, pull_number: issueNumber });
+        isPR = true;
+        targetBranch = prData.head.ref;
+        issue = { data: prData };
+        
+        // Fetch rejection comments
+        const { data: reviews } = await octokit.rest.pulls.listReviews({ owner, repo, pull_number: issueNumber });
+        const lastReview = reviews.length > 0 ? reviews[reviews.length - 1] : { body: "" };
+        
+        contextInstructions = `
+        THIS IS A REJECTED PULL REQUEST. YOU MUST FIX THE CODEBASED ON THIS FEEDBACK:
+        Reviewer Feedback: ${lastReview.body}
+        `;
+        console.log(`[Coder] Iterating on existing PR #${issueNumber}, Branch: ${targetBranch}`);
+    } catch {
+        // It's a standard issue
+        issue = await octokit.rest.issues.get({ owner, repo, issue_number: issueNumber });
+        contextInstructions = `
+        Issue Title: ${issue.data.title}
+        Issue Body: ${issue.data.body}
+        `;
+    }
+
     const contextMap = await generateContextMap();
     
     let targetFileContent = "";
@@ -31,7 +59,7 @@ async function main(issueNumber) {
 
     const systemPrompt = `
     You are 'The 10x Senior Developer' AI.
-    Your job is to read an issue and write the precise code string required to solve it.
+    Your job is to read an issue (or PR feedback) and write the precise code string required to solve it.
     
     CRITICAL INSTRUCTIONS:
     1. You are developing a modern Next.js 14 App Router project (use 'next/navigation', NOT 'next/router').
@@ -51,8 +79,7 @@ async function main(issueNumber) {
     }`;
 
     const userPrompt = `
-    Issue Title: ${issue.data.title}
-    Issue Body: ${issue.data.body}
+    ${contextInstructions}
     
     Codebase Map (Where things live):
     ${contextMap}
@@ -63,13 +90,15 @@ async function main(issueNumber) {
     
     if (response && response.files) {
         try {
-            const branchName = `fix/ai-issue-${issueNumber}-${Date.now().toString().slice(-4)}`;
-            console.log(`[Coder] Generating branch ${branchName} and applying ${response.files.length} changes...`);
+            const branchName = isPR ? targetBranch : `fix/ai-issue-${issueNumber}-${Date.now().toString().slice(-4)}`;
+            console.log(`[Coder] Pushing ${response.files.length} changes to branch ${branchName}...`);
             
-            // 1. Get default branch SHA
+            // 1. Get branch SHA (default branch if new issue, existing branch if PR)
             const { data: repoData } = await octokit.rest.repos.get({ owner, repo });
             const defaultBranch = repoData.default_branch;
-            const { data: refData } = await octokit.rest.git.getRef({ owner, repo, ref: `heads/${defaultBranch}` });
+            const refToFetch = isPR ? `heads/${branchName}` : `heads/${defaultBranch}`;
+            
+            const { data: refData } = await octokit.rest.git.getRef({ owner, repo, ref: refToFetch });
             const baseSha = refData.object.sha;
 
             // 2. Create blobs and tree
@@ -85,24 +114,45 @@ async function main(issueNumber) {
             });
 
             // 3. Create Commit
+            const commitMessage = isPR 
+                ? `[AI] Iteration on PR #${issueNumber} based on Reviewer feedback`
+                : `[AI] Resolves Issue #${issueNumber}: ${issue.data.title}`;
+                
             const { data: commitData } = await octokit.rest.git.createCommit({
-                owner, repo, message: `[AI] Resolves Issue #${issueNumber}: ${issue.data.title}`, tree: treeData.sha, parents: [baseSha]
+                owner, repo, message: commitMessage, tree: treeData.sha, parents: [baseSha]
             });
 
-            // 4. Create Branch
-            await octokit.rest.git.createRef({
-                owner, repo, ref: `refs/heads/${branchName}`, sha: commitData.sha
-            });
+            // 4. Update or Create Branch
+            if (isPR) {
+                await octokit.rest.git.updateRef({
+                    owner, repo, ref: `heads/${branchName}`, sha: commitData.sha
+                });
+                console.log(`✅ Senior Developer pushed new commit to PR #${issueNumber}`);
+                
+                // Remove ai-rejected label so actions can run fresh
+                try {
+                    await octokit.rest.issues.removeLabel({ owner, repo, issue_number: issueNumber, name: 'ai-rejected' });
+                } catch { /* ignore if not present */ }
+                
+                 if (process.env.GITHUB_ENV) {
+                    fs.appendFileSync(process.env.GITHUB_ENV, `AI_PR_NUMBER=${issueNumber}\n`);
+                }
+            } else {
+                await octokit.rest.git.createRef({
+                    owner, repo, ref: `refs/heads/${branchName}`, sha: commitData.sha
+                });
 
-            // 5. Create Pull Request
-            const { data: prData } = await octokit.rest.pulls.create({
-                owner, repo, title: `[AI] Resolves Issue #${issueNumber}: ${issue.data.title}`, head: branchName, base: defaultBranch, body: `Resolves #${issueNumber}\n\n🤖 Autonomously generated by The Coder.`
-            });
-
-            console.log(`✅ Senior Developer opened PR successfully: ${prData.html_url}`);
-            if (process.env.GITHUB_ENV) {
-                fs.appendFileSync(process.env.GITHUB_ENV, `AI_PR_NUMBER=${prData.number}\n`);
+                // 5. Create Pull Request
+                const { data: prData } = await octokit.rest.pulls.create({
+                    owner, repo, title: `[AI] Resolves Issue #${issueNumber}: ${issue.data.title}`, head: branchName, base: defaultBranch, body: `Resolves #${issueNumber}\n\n🤖 Autonomously generated by The Coder.`
+                });
+                console.log(`✅ Senior Developer opened PR successfully: ${prData.html_url}`);
+                
+                if (process.env.GITHUB_ENV) {
+                    fs.appendFileSync(process.env.GITHUB_ENV, `AI_PR_NUMBER=${prData.number}\n`);
+                }
             }
+            
         } catch(e) {
             console.error("❌ Coder failed to push to GitHub", e);
         }
