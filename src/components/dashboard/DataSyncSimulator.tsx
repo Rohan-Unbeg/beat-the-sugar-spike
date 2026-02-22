@@ -1,62 +1,70 @@
-"use client";
+import { motion } from 'framer-motion';
+import { Activity, Cloud, Database } from 'lucide-react';
+import { useState } from 'react';
 
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Activity, Heart, Footprints } from "lucide-react";
-import { useStore } from "@/lib/store";
+export function DataSyncSimulator() {
+  const [syncing, setSyncing] = useState(false);
+  const [progress, setProgress] = useState(0);
 
-export default function DataSyncSimulator() {
-  const { user, updatePassiveData } = useStore();
-  const [showSync, setShowSync] = useState(false);
-
-  useEffect(() => {
-    if (!user.isPassiveSyncEnabled) return;
-
-    // Simulate active health data syncing
+  const startSync = () => {
+    setSyncing(true);
+    let current = 0;
     const interval = setInterval(() => {
-      // 1. Update Data
-      const extraSteps = Math.floor(Math.random() * 15) + 5;
-      const newHeartRate = 65 + Math.floor(Math.random() * 40); // 65-105 bpm
-
-      updatePassiveData({
-        steps: (user.passiveData?.steps || 0) + extraSteps,
-        heartRate: newHeartRate
-      });
-
-      // 2. Show Sync Indicator (Visual Feedback) occasionally
-      if (Math.random() > 0.7) {
-        setShowSync(true);
-        setTimeout(() => setShowSync(false), 2000);
+      current += Math.random() * 10 + 5;
+      setProgress(Math.min(current, 100));
+      if (current >= 100) {
+        clearInterval(interval);
+        setSyncing(false);
       }
-
-    }, 4000); // Updates every 4 seconds
-
-    return () => clearInterval(interval);
-  }, [user.isPassiveSyncEnabled, user.passiveData?.steps, updatePassiveData]);
+    }, 500);
+  };
 
   return (
-    <AnimatePresence>
-      {showSync && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          className="fixed bottom-24 right-6 z-40 bg-black/80 backdrop-blur-md text-white px-4 py-2 rounded-full flex items-center gap-3 shadow-xl"
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="p-6 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl shadow-lg"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center">
+          <Cloud className="w-6 h-6 text-indigo-600 mr-2" />
+          <h3 className="text-lg font-semibold text-gray-800">Data Sync</h3>
+        </div>
+        <button
+          onClick={startSync}
+          disabled={syncing}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center"
         >
-          <div className="relative">
-            <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-ping" />
-            <Activity className="w-4 h-4 text-green-400" />
-          </div>
-          <div className="flex flex-col">
-             <span className="text-[10px] font-bold uppercase tracking-wider text-white/60">Live Sync</span>
-             <div className="flex items-center gap-2 text-xs font-bold">
-               <span className="flex items-center gap-1"><Heart className="w-3 h-3 text-red-500 fill-red-500" /> {user.passiveData?.heartRate}</span>
-               <span className="w-px h-3 bg-white/20" />
-               <span className="flex items-center gap-1"><Footprints className="w-3 h-3 text-blue-400" /> {user.passiveData?.steps}</span>
-             </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+          {syncing ? (
+            <>
+              <Activity className="w-4 h-4 mr-2 animate-spin" />
+              Syncing...
+            </>
+          ) : (
+            <>
+              <Database className="w-4 h-4 mr-2" />
+              Start Sync
+            </>
+          )}
+        </button>
+      </div>
+
+      <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+        <motion.div
+          className="bg-indigo-600 h-2.5 rounded-full"
+          initial={{ width: 0 }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.5 }}
+        />
+      </div>
+
+      <div className="text-sm text-gray-600">
+        {syncing ? (
+          <p>Syncing {Math.round(progress)}% complete...</p>
+        ) : (
+          <p>Your data is up to date. Last sync: {new Date().toLocaleTimeString()}</p>
+        )}
+      </div>
+    </motion.div>
   );
 }
