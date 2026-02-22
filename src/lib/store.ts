@@ -46,6 +46,7 @@ interface AppState {
   isLoading: boolean;
   setUser: (data: Partial<UserProfile>) => void;
   addLog: (log: Omit<SugarLog, 'id'>) => void;
+  removeLog: (id: string) => void;
   incrementStreak: () => void;
   resetStreak: () => void;
   addScore: (points: number) => void;
@@ -99,11 +100,11 @@ export const useStore = create<AppState>()(
       togglePassiveSync: (enabled) =>
         set((state) => ({ user: { ...state.user, isPassiveSyncEnabled: enabled } })),
       updatePassiveData: (data) =>
-        set((state) => ({ 
-          user: { 
-            ...state.user, 
-            passiveData: { ...state.user.passiveData, ...data } 
-          } 
+        set((state) => ({
+          user: {
+            ...state.user,
+            passiveData: { ...state.user.passiveData, ...data }
+          }
         })),
       addLog: (log) =>
         set((state) => {
@@ -138,6 +139,15 @@ export const useStore = create<AppState>()(
 
           return newState;
         }),
+      removeLog: (id: string) =>
+        set((state) => {
+          const newState = {
+            logs: state.logs.filter((log) => log.id !== id),
+            user: { ...state.user, score: Math.max(0, state.user.score - 5) },
+          };
+          setTimeout(() => get().syncToFirestore(), 100);
+          return newState;
+        }),
       incrementStreak: () =>
         set((state) => ({ user: { ...state.user, streak: state.user.streak + 1 } })),
       resetStreak: () =>
@@ -145,7 +155,7 @@ export const useStore = create<AppState>()(
       addScore: (points) => {
         const state = get();
         let totalPoints = points;
-        
+
         // Bonus: Early Log (Before 6 PM)
         const hour = new Date().getHours();
         if (hour < 18) {
@@ -163,7 +173,7 @@ export const useStore = create<AppState>()(
 
         set((state) => ({ user: { ...state.user, score: state.user.score + totalPoints } }));
         setTimeout(() => get().syncToFirestore(), 100);
-        
+
         const bonusTotal = totalPoints - points;
         if (bonusTotal > 0) {
           get().showToast(`✨ +${bonusTotal} Bonus XP! (${luckBonus} Luck Bonus included)`);
@@ -217,25 +227,25 @@ export const useStore = create<AppState>()(
       loadFromFirestore: async (uid: string) => {
         // Since we now have enableMultiTabIndexedDbPersistence,
         // getDoc will return from CACHE immediately if available.
-        
+
         // OPTIMISTIC LOADING: If we already have a name in memory (from persist), 
         // don't show a skeleton. Use what we have while we verify with the cloud.
         if (get().user.displayName) {
-           set({ isLoading: false });
+          set({ isLoading: false });
         }
-        
+
         try {
           const snap = await getDoc(doc(db, 'users', uid));
           if (snap.exists()) {
             const data = snap.data();
             const profile = data.profile || {};
-            
+
             // Merge cloud data with local state
             // CRITICAL: Cloud takes priority for STATS (score, streak, logs)
             // But for IDENTITY (isAnonymous, email, photo, name), we must be careful
             // not to overwrite our shiny new Google session with an old "Anonymous" record from DB.
             const current = get().user;
-            
+
             // If our current local state says we are NOT anonymous (e.g. just linked Google),
             // and the DB says we ARE anonymous (old data), ignore DB's identity fields.
             const trustLocalIdentity = !current.isAnonymous;
@@ -250,19 +260,19 @@ export const useStore = create<AppState>()(
                 email: trustLocalIdentity ? current.email : (profile.email || current.email),
                 photoURL: trustLocalIdentity ? current.photoURL : (profile.photoURL || current.photoURL),
                 isAnonymous: trustLocalIdentity ? false : (profile.isAnonymous ?? current.isAnonymous),
-                
+
                 lastSeenLevel: profile.lastSeenLevel || 1,
               },
               logs: data.logs || [],
             });
-            
+
             console.log('[Firestore] Synced user data for:', uid);
           } else {
-             // New user: AuthProvider already generated a name for us.
-             // Just ensure the UID is correct.
-             set(state => ({ user: { ...state.user, uid } }));
-             // Sync our newly generated local state to the cloud.
-             setTimeout(() => get().syncToFirestore(), 1000);
+            // New user: AuthProvider already generated a name for us.
+            // Just ensure the UID is correct.
+            set(state => ({ user: { ...state.user, uid } }));
+            // Sync our newly generated local state to the cloud.
+            setTimeout(() => get().syncToFirestore(), 1000);
           }
         } catch (err: any) {
           console.error('[Firestore] Load error (using local cache):', err);

@@ -22,7 +22,7 @@ export default function InsightCard() {
       const lastRun = sessionStorage.getItem("last_insight_gen");
       const lastSteps = Number(sessionStorage.getItem("last_insight_steps") || 0);
       const currentSteps = user.passiveData?.steps || 0;
-      
+
       const timeDiff = lastRun ? Date.now() - Number(lastRun) : Infinity;
       const stepDiff = Math.abs(currentSteps - lastSteps);
 
@@ -31,15 +31,15 @@ export default function InsightCard() {
       // 2. Steps changed by > 500 OR 
       // 3. User just logged a new meal (logs length changed)
       if (timeDiff < 1000 * 60 * 10 && stepDiff < 500 && logs.length === (user as any).lastLogCount) {
-        return; 
+        return;
       }
 
       setIsGenerating(true);
-      
+
       const heightInMeters = (user.height || 170) / 100;
       const bmi = (user.weight || 70) / (heightInMeters * heightInMeters);
-      
-      const todaysLogs = logs.filter(log => 
+
+      const todaysLogs = logs.filter(log =>
         new Date(log.timestamp).toDateString() === new Date().toDateString()
       );
       const totalSugar = todaysLogs.reduce((acc, log) => acc + log.amount, 0);
@@ -56,31 +56,31 @@ export default function InsightCard() {
       };
 
       const freeTrialsUsed = (user as any).freeTrialsUsed || 0;
-      
+
       if (user.uid || freeTrialsUsed < 3) {
         try {
           const aiResult = await generatePersonalizedInsight(ctx);
           if (aiResult) {
             setInsight(aiResult);
-            
+
             // Update session tracking
             sessionStorage.setItem("last_insight_gen", Date.now().toString());
             sessionStorage.setItem("last_insight_steps", currentSteps.toString());
             setUser({ lastLogCount: logs.length } as any);
 
             if (!user.uid) {
-               setUser({ freeTrialsUsed: freeTrialsUsed + 1 } as any);
+              setUser({ freeTrialsUsed: freeTrialsUsed + 1 } as any);
             }
           } else {
             setInsight(generateMLInsight(ctx as any));
           }
-        } catch (e) {
+        } catch {
           setInsight(generateMLInsight(ctx as any));
         }
       } else {
         setInsight(generateMLInsight(ctx as any));
       }
-      
+
       setIsGenerating(false);
       setActionCompleted(false);
     }
@@ -88,12 +88,13 @@ export default function InsightCard() {
     // Debounce the effect slightly
     const timeout = setTimeout(loadInsight, 2000);
     return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [logs.length, user.passiveData?.steps, user.uid]);
 
   const handleActionComplete = () => {
     if (actionCompleted) return;
     setActionCompleted(true);
-    addScore(7); 
+    addScore(7);
     audio.playSuccess();
     showToast("🎯 Challenge Completed! +7 Logged");
     confetti({
@@ -124,37 +125,37 @@ export default function InsightCard() {
 
       {isLocked && (
         <div className="absolute inset-0 z-20 bg-white/40 backdrop-blur-[2px] flex flex-col items-center justify-center p-6 text-center">
-           <div className="w-12 h-12 rounded-full bg-bark flex items-center justify-center mb-3 shadow-lg">
-              <Lock className="w-5 h-5 text-white" />
-           </div>
-           <h4 className="font-display font-bold text-bark mb-1">Supercharge Active</h4>
-           <p className="text-[10px] text-bark-light font-medium mb-4">You&apos;ve used your 3 free AI Bio-Insights.</p>
-           <button 
-             onClick={() => {
-               import("@/lib/auth").then(({ signInWithGoogle }) => {
-                 signInWithGoogle().then((res) => {
-                   if (res.success) {
-                     showToast("🎉 Unlocked! Welcome to Elite.");
-                     window.location.reload(); 
-                   }
-                 });
-               });
-             }}
-             className="px-4 py-2 bg-coral text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md hover:scale-105 transition-all cursor-pointer"
-           >
-             Upgrade Now <ArrowUpRight className="w-3 h-3" />
-           </button>
+          <div className="w-12 h-12 rounded-full bg-bark flex items-center justify-center mb-3 shadow-lg">
+            <Lock className="w-5 h-5 text-white" />
+          </div>
+          <h4 className="font-display font-bold text-bark mb-1">Supercharge Active</h4>
+          <p className="text-[10px] text-bark-light font-medium mb-4">You&apos;ve used your 3 free AI Bio-Insights.</p>
+          <button
+            onClick={() => {
+              import("@/lib/auth").then(({ signInWithGoogle }) => {
+                signInWithGoogle().then((res) => {
+                  if (res.success) {
+                    showToast("🎉 Unlocked! Welcome to Elite.");
+                    window.location.reload();
+                  }
+                });
+              });
+            }}
+            className="px-4 py-2 bg-coral text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md hover:scale-105 transition-all cursor-pointer"
+          >
+            Upgrade Now <ArrowUpRight className="w-3 h-3" />
+          </button>
         </div>
       )}
-      
+
       <div className={`relative z-10 space-y-4 ${isLocked ? 'blur-[8px] opacity-40 grayscale' : ''}`}>
         <div className="flex items-start justify-between">
           <div className="flex gap-4 pr-10">
             <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center shrink-0 shadow-sm">
               {isGenerating ? (
-                 <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
-                   <Activity className="w-5 h-5 text-coral" />
-                 </motion.div>
+                <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
+                  <Activity className="w-5 h-5 text-coral" />
+                </motion.div>
               ) : (
                 <Lightbulb className={`w-5 h-5 ${insight.priority === 'low' ? 'text-sage-dark' : 'text-orange-500'}`} />
               )}
@@ -176,29 +177,28 @@ export default function InsightCard() {
         </div>
 
         <div className="flex items-center justify-between pt-2">
-           <motion.button
-             whileTap={{ scale: 0.95 }}
-             onClick={handleActionComplete}
-             disabled={actionCompleted || isLocked}
-             className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl transition-all cursor-pointer ${
-               actionCompleted 
-                 ? 'bg-sage/20 border border-sage/30 text-sage-dark' 
-                 : 'bg-white shadow-sm border border-black/5 hover:bg-clay/10 active:scale-95'
-             }`}
-           >
-             {actionCompleted ? (
-               <><CheckCircle2 className="w-4 h-4 text-sage" /><span className="text-xs font-black">Done! +7 Logged</span></>
-             ) : (
-               <><Activity className="w-3.5 h-3.5" /><span className="text-xs font-black">I Did It!</span><span className="text-[9px] font-bold text-coral ml-1 text-opacity-80">(+7 XP)</span></>
-             )}
-           </motion.button>
-           
-           <button 
-             onClick={() => !isLocked && setIsExpanded(!isExpanded)}
-             className="text-[10px] font-black uppercase tracking-widest flex items-center gap-1 opacity-60 transition-opacity"
-           >
-             Explain Why {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-           </button>
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={handleActionComplete}
+            disabled={actionCompleted || isLocked}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl transition-all cursor-pointer ${actionCompleted
+                ? 'bg-sage/20 border border-sage/30 text-sage-dark'
+                : 'bg-white shadow-sm border border-black/5 hover:bg-clay/10 active:scale-95'
+              }`}
+          >
+            {actionCompleted ? (
+              <><CheckCircle2 className="w-4 h-4 text-sage" /><span className="text-xs font-black">Done! +7 Logged</span></>
+            ) : (
+              <><Activity className="w-3.5 h-3.5" /><span className="text-xs font-black">I Did It!</span><span className="text-[9px] font-bold text-coral ml-1 text-opacity-80">(+7 XP)</span></>
+            )}
+          </motion.button>
+
+          <button
+            onClick={() => !isLocked && setIsExpanded(!isExpanded)}
+            className="text-[10px] font-black uppercase tracking-widest flex items-center gap-1 opacity-60 transition-opacity"
+          >
+            Explain Why {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
         </div>
 
         <AnimatePresence>
