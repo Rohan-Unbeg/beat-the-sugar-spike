@@ -1,0 +1,26 @@
+graph TD
+    User([User]) -->|Voice/Text Input| UI[Next.js Frontend]
+    UI -->|Speech-to-Text| BrowserAPI[Web Speech API]
+    BrowserAPI -->|Text Query| AI_Orchestrator{AI Orchestrator}
+    
+    subgraph "AI Processing Layer"
+        AI_Orchestrator -->|Primary| Gemini[Gemini 2.5 Flash]
+        AI_Orchestrator -->|Fallback 1| Groq[Groq Llama-3-70B]
+        AI_Orchestrator -->|Fallback 2| OpenFood[OpenFoodFacts API]
+    end
+    
+    Gemini -->|JSON Parsed Data| DataHandler[Data Handler]
+    Groq -->|JSON Parsed Data| DataHandler
+    OpenFood -->|Nutrient Data| DataHandler
+    
+    DataHandler -->|Store Log| DB[(Firebase Firestore)]
+    DataHandler -->|Generate Insight| InsightEngine[Insight Engine]
+    
+    subgraph "Context Engine"
+        Stats[User Stats: Age, BMI] --> InsightEngine
+        Time[Time of Day] --> InsightEngine
+        Activity[Activity: Steps, Sleep] --> InsightEngine
+    end
+    
+    InsightEngine -->|Personalized Nudge| UI
+    DB -->|Sync Realtime| UI
