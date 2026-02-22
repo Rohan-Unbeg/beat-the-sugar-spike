@@ -33,8 +33,8 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             // If Firebase says we have a name/photo/email, USE IT.
             // Only fallback to local state if Firebase is empty (e.g. specialized anon flows)
             let resolvedName = firebaseUser.displayName || currentState.user.displayName;
-            let resolvedPhoto = firebaseUser.photoURL || currentState.user.photoURL;
-            let resolvedEmail = firebaseUser.email || currentState.user.email;
+            const resolvedPhoto = firebaseUser.photoURL || currentState.user.photoURL;
+            const resolvedEmail = firebaseUser.email || currentState.user.email;
 
             // If truly anonymous and no name, generate one if needed
             if (firebaseUser.isAnonymous && !resolvedName) {
