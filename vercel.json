@@ -1,7 +1,0 @@
-{
-    "github": {
-        "silent": true,
-        "autoAlias": false
-    },
-    "ignoreCommand": "if [ \"$GITHUB_REF_NAME\" = \"main\" ]; then exit 1; elif [[ \"$GITHUB_REF_NAME\" == fix/ai-issue* ]]; then exit 0; else exit 1; fi"
-}
