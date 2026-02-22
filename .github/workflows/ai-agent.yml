@@ -5,6 +5,8 @@ on:
     - cron: '0 0 * * 0' # Weekly scan for bugs/features
   pull_request:
     types: [opened, synchronize] # Trigger Reviewer on new PRs
+  issues:
+    types: [opened] # Trigger Coder on new Issues
   workflow_dispatch: # Manual trigger for Sandbox testing
 
 jobs:
@@ -31,6 +33,15 @@ jobs:
           npm run lint || true
           npm run build || true
       
+      - name: Run Coder (If AI Issue)
+        if: github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'ai-generated')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/auto-maintainer/coder.js ${{ github.event.issue.number }}
+
       - name: Run Reviewer (If PR)
         if: github.event_name == 'pull_request'
         env:
@@ -40,7 +51,7 @@ jobs:
         run: node scripts/auto-maintainer/reviewer.js ${{ github.event.pull_request.number }}
 
       - name: Run Manager (If Scheduled/Workflow Dispatch)
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
