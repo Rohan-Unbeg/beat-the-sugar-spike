@@ -137,7 +137,7 @@ export const useStore = create<AppState>()(
           const newState = {
             logs: [
               ...state.logs,
-              { ...log, id: Math.random().toString(36).substring(2, 9) },
+              { ...log, id: crypto.randomUUID() },
             ],
             user: {
               ...state.user,

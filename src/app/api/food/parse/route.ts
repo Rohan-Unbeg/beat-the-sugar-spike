@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-const GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
-const groq = new Groq({
-  apiKey: GROQ_API_KEY || "dummy_key",
-});
+const groq = GROQ_API_KEY ? new Groq({ apiKey: GROQ_API_KEY }) : null;
 
 async function callGemini(systemPrompt: string, userPrompt: string, jsonMode: boolean = true): Promise<string | null> {
   if (!GEMINI_API_KEY) return null;
@@ -100,18 +98,22 @@ export async function POST(req: Request) {
            }`;
       
       const jsonStr = await callGemini(systemPrompt, query, true);
-      if (jsonStr) return NextResponse.json(JSON.parse(jsonStr));
+      if (jsonStr) {
+        const parsed = JSON.parse(jsonStr);
+        return NextResponse.json(parsed);
+      }
     } catch (e) {
       console.warn("Gemini Parsing Failed, trying Groq...", e);
     }
 
     // 2. Try Groq
-    try {
-      const chatCompletion = await groq.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: `You are a nutrition expert. Parse the user's food description into a JSON object. 
+    if (groq) {
+      try {
+        const chatCompletion = await groq.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content: `You are a nutrition expert. Parse the user's food description into a JSON object. 
             Estimate the total sugar content in grams based on common serving sizes.
             Provide a single emoji icon related to the food.
             Categories: drink, sweet, food, dairy, fruit.
@@ -123,21 +125,25 @@ export async function POST(req: Request) {
               "category": "category-name",
               "icon": "emoji"
             }`
-          },
-          {
-            role: "user",
-            content: query
-          }
-        ],
-        model: "llama-3.3-70b-versatile",
-        temperature: 0.1,
-        response_format: { type: "json_object" }
-      });
+            },
+            {
+              role: "user",
+              content: query
+            }
+          ],
+          model: "llama-3.3-70b-versatile",
+          temperature: 0.1,
+          response_format: { type: "json_object" }
+        });
 
-      const content = chatCompletion.choices[0]?.message?.content;
-      if (content) return NextResponse.json(JSON.parse(content));
-    } catch (error: any) {
-      console.warn("⚠️ Groq AI Failed. Switching to OpenFoodFacts...", error);
+        const content = chatCompletion.choices[0]?.message?.content;
+        if (content) {
+          const parsed = JSON.parse(content);
+          return NextResponse.json(parsed);
+        }
+      } catch (error: any) {
+        console.warn("⚠️ Groq AI Failed. Switching to OpenFoodFacts...", error);
+      }
     }
 
     // 3. Fallback: OpenFoodFacts

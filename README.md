@@ -85,8 +85,8 @@ This project is optimized for deployment on **Vercel**.
 1.  **Push to GitHub**: Ensure your repository is up to date.
 2.  **Import to Vercel**: Connect your GitHub repo to Vercel.
 3.  **Environment Variables**: Add the following in Vercel Project Settings:
-    -   `NEXT_PUBLIC_GEMINI_API_KEY`
-    -   `NEXT_PUBLIC_GROQ_API_KEY`
+    -   `GEMINI_API_KEY`
+    -   `GROQ_API_KEY`
     -   `NEXT_PUBLIC_FIREBASE_API_KEY`
     -   `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
     -   `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
