@@ -4,7 +4,7 @@ dotenv.config({ path: '.env.local' });
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 /**
- * Core AI routing engine exclusively using Gemini 2.5 Flash.
+ * Core AI routing engine exclusively using Gemini 2.5 Pro.
  * Implements an intelligent backoff and retry loop to seamlessly handle 
  * Google AI Studio free-tier rate limits (15 RPM).
  * 
@@ -19,9 +19,9 @@ export async function callAI(systemPrompt, userPrompt) {
   }
 
   while (true) {
-    console.log("🧠 Routing to Gemini 2.5 Flash...");
+    console.log("🧠 Routing to Gemini 2.5 Pro...");
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
