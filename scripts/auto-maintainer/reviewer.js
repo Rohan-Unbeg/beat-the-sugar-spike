@@ -48,11 +48,30 @@ async function main(prNumber) {
     if (review && review.approved !== undefined) {
         console.log(`AI QA Decision: ${review.approved ? 'APPROVE' : 'REQUEST_CHANGES'}`);
 
+        // GitHub blocks a bot from approving its own PR. We must use COMMENT and rely on labels/auto-merge
+        const bodyPrefix = review.approved 
+            ? "✅ **Quality Assurance Passed.**\n\n" 
+            : "❌ **Quality Assurance Failed.**\n\n";
+
         await octokit.rest.pulls.createReview({
             owner, repo, pull_number: prNumber,
-            event: review.approved ? 'APPROVE' : 'REQUEST_CHANGES',
-            body: `${review.comment}\n\n🤖 *Quality Assurance review performed autonomously by AI Planner.*`
+            event: 'COMMENT',
+            body: bodyPrefix + `${review.comment}\n\n🤖 *Review performed autonomously by AI Planner.*`
         });
+        
+        // If rejected, add a label so the Actions workflow can pick it up and trigger the coder again
+        if (!review.approved) {
+           await octokit.rest.issues.addLabels({
+               owner, repo, issue_number: prNumber, labels: ['ai-rejected']
+           });
+        }
+
+        // If approved, add a label to signal it's ready for merge
+        if (review.approved) {
+           await octokit.rest.issues.addLabels({
+               owner, repo, issue_number: prNumber, labels: ['ai-approved']
+           });
+        }
         
         console.log(`Review for PR #${prNumber} submitted.`);
     } else {

@@ -69,8 +69,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            gh pr merge --auto --squash "${{ github.event.pull_request.number }}"
+          PR_NUM="${{ github.event.pull_request.number }}"
+          if [ -z "$PR_NUM" ]; then
+            PR_NUM="${{ env.AI_PR_NUMBER }}"
+          fi
+
+          if gh pr view "$PR_NUM" --json labels -q '.labels[].name' | grep -q 'ai-approved'; then
+            echo "Merging PR $PR_NUM autonomously..."
+            gh pr merge --auto --squash "$PR_NUM"
           else
-            gh pr merge --auto --squash "${{ env.AI_PR_NUMBER }}"
+            echo "PR $PR_NUM is NOT approved yet. Skipping merge."
           fi
