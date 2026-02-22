@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-const GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
-const groq = new Groq({
-  apiKey: GROQ_API_KEY || "dummy_key",
-});
+const groq = GROQ_API_KEY ? new Groq({ apiKey: GROQ_API_KEY }) : null;
 
 async function callGemini(systemPrompt: string, userPrompt: string, jsonMode: boolean = true): Promise<string | null> {
   if (!GEMINI_API_KEY) return null;
@@ -63,33 +61,41 @@ export async function POST(req: Request) {
     // 1. Try Gemini
     try {
        const jsonStr = await callGemini(systemPrompt, userContext, true);
-       if (jsonStr) return NextResponse.json(JSON.parse(jsonStr));
+       if (jsonStr) {
+         const parsed = JSON.parse(jsonStr);
+         return NextResponse.json(parsed);
+       }
     } catch (e) {
        console.warn("Gemini Insight Failed, trying Groq...", e);
     }
 
     // 2. Try Groq
-    try {
-      const chatCompletion = await groq.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: systemPrompt
-          },
-          {
-            role: "user",
-            content: userContext
-          }
-        ],
-        model: "llama-3.3-70b-versatile",
-        temperature: 0.7,
-        response_format: { type: "json_object" }
-      });
+    if (groq) {
+      try {
+        const chatCompletion = await groq.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content: systemPrompt
+            },
+            {
+              role: "user",
+              content: userContext
+            }
+          ],
+          model: "llama-3.3-70b-versatile",
+          temperature: 0.7,
+          response_format: { type: "json_object" }
+        });
 
-      const content = chatCompletion.choices[0]?.message?.content;
-      if (content) return NextResponse.json(JSON.parse(content));
-    } catch (error: any) {
-      console.error("Insight Generation Error:", error);
+        const content = chatCompletion.choices[0]?.message?.content;
+        if (content) {
+          const parsed = JSON.parse(content);
+          return NextResponse.json(parsed);
+        }
+      } catch (error: any) {
+        console.error("Insight Generation Error:", error);
+      }
     }
 
     return NextResponse.json({ error: "Failed to generate insight" }, { status: 500 });
