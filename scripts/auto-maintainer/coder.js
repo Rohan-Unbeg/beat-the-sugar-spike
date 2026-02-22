@@ -1,4 +1,5 @@
 import { Octokit } from '@octokit/rest';
+import fs from 'fs';
 import * as dotenv from 'dotenv';
 import { generateContextMap } from './brain.js';
 import { callAI } from './ai.js';
@@ -80,6 +81,9 @@ async function main(issueNumber) {
             });
 
             console.log(`✅ Senior Developer opened PR successfully: ${prData.html_url}`);
+            if (process.env.GITHUB_ENV) {
+                fs.appendFileSync(process.env.GITHUB_ENV, `AI_PR_NUMBER=${prData.number}\n`);
+            }
         } catch(e) {
             console.error("❌ Coder failed to push to GitHub", e);
         }
