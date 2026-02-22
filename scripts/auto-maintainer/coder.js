@@ -36,12 +36,31 @@ async function main(issueNumber) {
         `;
         console.log(`[Coder] Iterating on existing PR #${issueNumber}, Branch: ${targetBranch}`);
     } catch {
-        // It's a standard issue
         issue = await octokit.rest.issues.get({ owner, repo, issue_number: issueNumber });
         contextInstructions = `
         Issue Title: ${issue.data.title}
         Issue Body: ${issue.data.body}
         `;
+        
+        // Let's also check if there's already an open PR for this issue so we don't duplicate it.
+        const { data: openPRs } = await octokit.rest.pulls.list({ owner, repo, state: 'open' });
+        const existingPR = openPRs.find(pr => pr.head.ref.startsWith(`fix/ai-issue-${issueNumber}-`));
+        
+        if (existingPR) {
+            console.log(`[Coder] Found existing PR #${existingPR.number} for Issue #${issueNumber}. Switching to iterate on the PR.`);
+            isPR = true;
+            issueNumber = existingPR.number;
+            targetBranch = existingPR.head.ref;
+            issue = { data: existingPR };
+            
+            const { data: reviews } = await octokit.rest.pulls.listReviews({ owner, repo, pull_number: issueNumber });
+            const lastReview = reviews.length > 0 ? reviews[reviews.length - 1] : { body: "Please improve the code." };
+            
+            contextInstructions = `
+            THIS IS A REJECTED PULL REQUEST. YOU MUST FIX THE CODE BASED ON THIS FEEDBACK:
+            Reviewer Feedback: ${lastReview.body}
+            `;
+        }
     }
 
     const contextMap = await generateContextMap();
