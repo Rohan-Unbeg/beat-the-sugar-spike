@@ -6,7 +6,7 @@ on:
   pull_request:
     types: [opened, synchronize] # Trigger Reviewer on new PRs
   issues:
-    types: [opened] # Trigger Coder on new Issues
+    types: [opened, reopened] # Trigger Coder on new Issues
   workflow_dispatch: # Manual trigger for Sandbox testing
 
 jobs:
