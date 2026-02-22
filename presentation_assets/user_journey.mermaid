@@ -1,0 +1,14 @@
+stateDiagram-v2
+    [*] --> Onboarding: Anonymous Entry
+    Onboarding --> Dashboard: Complete (Age/Height/Weight)
+    
+    state "Daily Habit Loop" as Loop {
+        Dashboard --> Logging: Tap "Add Sugar"
+        Logging --> AI_Analysis: Speak/Type Food
+        AI_Analysis --> Feedback: Instant JSON Result
+        Feedback --> Reward: "Sugar Spike" Insight
+        Reward --> Dashboard: +XP / Streak Update
+    }
+    
+    Dashboard --> Visualization: View Weekly Progress
+    Visualization --> Dashboard

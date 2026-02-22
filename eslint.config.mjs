@@ -13,7 +13,7 @@ const eslintConfig = defineConfig([
       "react-hooks/exhaustive-deps": "warn",
       "react-hooks/set-state-in-effect": "off",
       "react/no-unescaped-entities": "off",
-      "@next/next/no-img-element": "off",
+      "@next/next/no-img-element": "off", // Hackathon often uses <img>
     },
   },
   // Override default ignores of eslint-config-next.
