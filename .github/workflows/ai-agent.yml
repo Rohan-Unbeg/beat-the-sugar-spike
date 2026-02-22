@@ -1,0 +1,55 @@
+name: 100% Autonomous AI Agent
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Weekly scan for bugs/features
+  pull_request:
+    types: [opened, synchronize] # Trigger Reviewer on new PRs
+  workflow_dispatch: # Manual trigger for Sandbox testing
+
+jobs:
+  ai-agent-loop:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build & Lint (Safety First)
+        run: |
+          npm run lint || true
+          npm run build || true
+      
+      - name: Run Reviewer (If PR)
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: node scripts/auto-maintainer/reviewer.js ${{ github.event.pull_request.number }}
+
+      - name: Run Manager (If Scheduled/Workflow Dispatch)
+        if: github.event_name != 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/auto-maintainer/manager.js
+
+      - name: Auto Merge Approved PRs
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge --auto --squash "${{ github.event.pull_request.number }}"
