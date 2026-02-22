@@ -9,7 +9,7 @@ import { signInWithGoogle } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
 
 export default function Home() {
-  const { user, showToast } = useStore();
+  const { user, showToast, isLoading } = useStore();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
@@ -26,8 +26,15 @@ export default function Home() {
 
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => {
-    if (mounted && user.isOnboarded) router.push("/dashboard");
-  }, [mounted, user.isOnboarded, router]);
+    if (mounted && !isLoading) {
+      if (user.isOnboarded) {
+        router.push("/dashboard");
+      } else if (user.uid && !user.isAnonymous) {
+        // Logged in with a real account but completely new (no DB record of onboarding)
+        router.push("/onboarding");
+      }
+    }
+  }, [mounted, isLoading, user.isOnboarded, user.uid, user.isAnonymous, router]);
 
   if (!mounted) return null;
 

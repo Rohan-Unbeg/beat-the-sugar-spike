@@ -241,8 +241,7 @@ export const useStore = create<AppState>()(
       },
 
       loadFromFirestore: async (uid: string) => {
-        // Since we now have enableMultiTabIndexedDbPersistence,
-        // getDoc will return from CACHE immediately if available.
+        set({ isLoading: true });
         try {
           const snap = await getDoc(doc(db, 'users', uid));
           if (snap.exists()) {
