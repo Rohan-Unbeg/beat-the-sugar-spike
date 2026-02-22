@@ -30,7 +30,8 @@ export default function InsightCard() {
       // 1. It's been > 10 minutes OR 
       // 2. Steps changed by > 500 OR 
       // 3. User just logged a new meal (logs length changed)
-      if (timeDiff < 1000 * 60 * 10 && stepDiff < 500 && logs.length === (user as any).lastLogCount) {
+      const lastLogCount = user.lastLogCount || 0;
+      if (timeDiff < 1000 * 60 * 10 && stepDiff < 500 && logs.length === lastLogCount) {
         return;
       }
 
@@ -42,44 +43,44 @@ export default function InsightCard() {
       const todaysLogs = logs.filter(log =>
         new Date(log.timestamp).toDateString() === new Date().toDateString()
       );
-      const totalSugar = todaysLogs.reduce((acc, log) => acc + log.amount, 0);
-
-      const ctx = {
-        age: user.age || 25,
-        bmi,
-        steps: currentSteps,
-        heartRate: user.passiveData?.heartRate || 72,
-        sleepHours: user.passiveData?.sleepHours || 8,
-        timeOfDay: new Date().getHours(),
-        sugarIntake: totalSugar,
-        isMale: user.gender === "male"
-      };
-
-      const freeTrialsUsed = (user as any).freeTrialsUsed || 0;
-
-      if (user.uid || freeTrialsUsed < 3) {
-        try {
-          const aiResult = await generatePersonalizedInsight(ctx);
-          if (aiResult) {
-            setInsight(aiResult);
-
-            // Update session tracking
-            sessionStorage.setItem("last_insight_gen", Date.now().toString());
-            sessionStorage.setItem("last_insight_steps", currentSteps.toString());
-            setUser({ lastLogCount: logs.length } as any);
-
-            if (!user.uid) {
-              setUser({ freeTrialsUsed: freeTrialsUsed + 1 } as any);
-            }
-          } else {
-            setInsight(generateMLInsight(ctx as any));
-          }
-        } catch {
-          setInsight(generateMLInsight(ctx as any));
-        }
-      } else {
-        setInsight(generateMLInsight(ctx as any));
-      }
+      const totalSugarToday = todaysLogs.reduce((acc, log) => acc + log.amount, 0);
+ 
+       const ctx = {
+         age: user.age || 25,
+         bmi,
+         steps: currentSteps,
+         heartRate: user.passiveData?.heartRate || 72,
+         sleepHours: user.passiveData?.sleepHours || 8,
+         timeOfDay: new Date().getHours(),
+         totalSugarToday,
+         isMale: user.gender === "male"
+       };
+ 
+       const freeTrialsUsed = user.freeTrialsUsed || 0;
+ 
+       if (user.uid || freeTrialsUsed < 3) {
+         try {
+           const aiResult = await generatePersonalizedInsight(ctx);
+           if (aiResult) {
+             setInsight(aiResult);
+ 
+             // Update session tracking
+             sessionStorage.setItem("last_insight_gen", Date.now().toString());
+             sessionStorage.setItem("last_insight_steps", currentSteps.toString());
+             setUser({ ...user, lastLogCount: logs.length });
+ 
+             if (!user.uid) {
+               setUser({ ...user, freeTrialsUsed: freeTrialsUsed + 1 });
+             }
+           } else {
+             setInsight(generateMLInsight(ctx));
+           }
+         } catch {
+           setInsight(generateMLInsight(ctx));
+         }
+       } else {
+         setInsight(generateMLInsight(ctx));
+       }
 
       setIsGenerating(false);
       setActionCompleted(false);
@@ -88,8 +89,7 @@ export default function InsightCard() {
     // Debounce the effect slightly
     const timeout = setTimeout(loadInsight, 2000);
     return () => clearTimeout(timeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [logs.length, user.passiveData?.steps, user.uid]);
+  }, [logs.length, user, setUser]);
 
   const handleActionComplete = () => {
     if (actionCompleted) return;

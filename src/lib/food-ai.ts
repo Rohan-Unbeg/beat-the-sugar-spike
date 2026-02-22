@@ -37,7 +37,7 @@ export async function generatePersonalizedInsight(ctx: {
   steps: number;
   sleepHours: number;
   timeOfDay: number;
-  sugarIntake: number;
+  totalSugarToday: number;
   isMale: boolean;
 }): Promise<HealthInsight | null> {
   try {

@@ -1,18 +1,17 @@
-import {
-  signInAnonymously,
-  signInWithPopup,
+import { 
+  getAuth, 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  onAuthStateChanged,
+  User,
   signInWithRedirect,
   getRedirectResult,
-  GoogleAuthProvider,
-  onAuthStateChanged,
-  linkWithPopup,
-  signOut as firebaseSignOut,
-  type User,
-  type UserCredential,
+  UserCredential,
+  signOut as firebaseSignOut
 } from "firebase/auth";
-import { auth } from "./firebase";
+import app from "./firebase";
 
-const googleProvider = new GoogleAuthProvider();
+export const auth = getAuth(app);
 
 export interface AuthResult {
   success: boolean;
@@ -20,101 +19,74 @@ export interface AuthResult {
   error?: string;
 }
 
-// Sign in anonymously — called on app load
-export async function signInAnon(): Promise<User | null> {
-  try {
-    const result = await signInAnonymously(auth);
-    console.log("[Auth] Anonymous sign-in:", result.user.uid);
-    return result.user;
-  } catch (error) {
-    console.error("[Auth] Anonymous sign-in failed:", error);
-    return null;
-  }
+/**
+ * Signs in a user anonymously.
+ * This is the default state for new users in SugarSync.
+ */
+export async function signInAnon(): Promise<AuthResult> {
+  // SugarSync uses custom guest profiles in the store, 
+  // but we can also use Firebase Anon if needed.
+  // For now, we rely on the store's isAnonymous flag.
+  return { success: true };
 }
 
 // Sign in with Google — tries popup first, falls back to redirect
 export async function signInWithGoogle(): Promise<AuthResult> {
-  console.log("[Auth] signInWithGoogle EXECUTED");
   try {
-    const currentUser = auth.currentUser;
-
+    const googleProvider = new GoogleAuthProvider();
     // For stability in hackathon, we skip flaky linking and prefer direct sign-in.
     // This ensures users can always access their account even if anon data is lost.
-    const shouldLink = false; 
-    if (currentUser && currentUser.isAnonymous && shouldLink) {
-      console.log("[Auth] Attempting to link anonymous account...");
-      try {
-        const linkPromise = linkWithPopup(currentUser, googleProvider);
-        const timeoutPromise = new Promise<never>((_, reject) => 
-            setTimeout(() => reject(new Error("TIMEOUT")), 4000)
-        );
-
-        const result = await Promise.race([linkPromise, timeoutPromise]) as UserCredential;
-        
-        console.log("[Auth] Anonymous → Google upgrade success:", result.user.uid);
-        return { success: true, user: result.user };
-      } catch (linkError: any) {
-        console.warn("[Auth] Link failed, falling back to direct sign-in:", linkError);
-        
-        try {
-            const result = await signInWithPopup(auth, googleProvider);
-            return { success: true, user: result.user };
-        } catch (directErr: any) {
-             console.error("[Auth] Fallback sign-in failed:", directErr);
-             if (directErr.code === "auth/popup-blocked") {
-                 await signInWithRedirect(auth, googleProvider);
-                 return { success: true };
-             }
-             throw directErr;
-        }
-      }
-    }
-
-    // Direct Google sign-in
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      return { success: true, user: result.user };
-    } catch (popupError: any) {
-      if (popupError.code === "auth/popup-blocked") {
-        await signInWithRedirect(auth, googleProvider);
-        return { success: true };
-      }
-      throw popupError;
-    }
+    const result = await signInWithPopup(auth, googleProvider);
+    console.log("[Auth] Google sign-in success:", result.user.uid);
+    return { success: true, user: result.user };
   } catch (error: any) {
-    console.error("[Auth] Google sign-in failure:", error);
-    if (error.code === "auth/popup-closed-by-user") {
-      return { success: false, error: "Sign-in cancelled" };
+    console.error("[Auth] Google Pop-up Error:", error.message);
+    
+    // Fallback to Redirect if Pop-up is blocked
+    if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+      try {
+        await signInWithRedirect(auth, new GoogleAuthProvider());
+        return { success: true }; 
+      } catch (redirErr: any) {
+        return { success: false, error: redirErr.message };
+      }
     }
-    return { success: false, error: error.message || "Sign-in failed. Try again." };
+    return { success: false, error: error.message };
   }
 }
 
-// Check for redirect result on page load
-export async function handleRedirectResult(): Promise<User | null> {
+/**
+ * Handles the result of a redirect sign-in flow.
+ * Should be called on app load.
+ */
+export async function handleRedirectResult(): Promise<AuthResult> {
   try {
     const result = await getRedirectResult(auth);
-    if (result?.user) {
-      return result.user;
+    if (result) {
+      console.log("[Auth] Redirect sign-in success:", result.user.uid);
+      return { success: true, user: result.user };
     }
-    return null;
+    return { success: false };
   } catch (error: any) {
-    console.error("[Auth] Redirect result error:", error);
-    return null;
+    console.error("[Auth] Redirect Error:", error.message);
+    return { success: false, error: error.message };
   }
 }
 
-// Sign out
+/**
+ * Signs out the current user.
+ */
 export async function signOut(): Promise<void> {
-  await firebaseSignOut(auth);
+  try {
+    await firebaseSignOut(auth);
+  } catch (error) {
+    console.error("[Auth] Sign-out Error:", error);
+  }
 }
 
-// Listen to auth state changes
+/**
+ * Listens for auth state changes.
+ */
 export function onAuthChange(callback: (user: User | null) => void) {
   return onAuthStateChanged(auth, callback);
-}
-
-// Get current user
-export function getCurrentUser(): User | null {
-  return auth.currentUser;
 }

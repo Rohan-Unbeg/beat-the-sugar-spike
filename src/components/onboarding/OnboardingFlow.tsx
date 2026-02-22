@@ -11,6 +11,15 @@ import { useRouter } from "next/navigation";
 
 import { generateAnonName } from "@/lib/utils";
 
+interface FormData {
+  name: string;
+  age: number;
+  gender: "male" | "female" | "other";
+  height: number;
+  weight: number;
+  goal: "lose" | "maintain" | "gain";
+}
+
 // Steps: Gender -> Age -> Height -> Weight -> Goal -> Pledge
 
 export default function OnboardingFlow() {
@@ -19,13 +28,13 @@ export default function OnboardingFlow() {
   const [step, setStep] = useState(0);
   
   // Local state for smooth transitions before committing to store
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: "",
     age: 25,
-    gender: "male" as "male" | "female" | "other",
+    gender: "male",
     height: 170,
     weight: 70,
-    goal: "maintain" as "lose" | "maintain" | "gain"
+    goal: "maintain"
   });
 
   const nextStep = () => {

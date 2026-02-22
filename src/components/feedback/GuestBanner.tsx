@@ -38,7 +38,7 @@ export default function GuestBanner() {
           <button 
             onClick={() => {
                 console.log("[GuestBanner] Connect button CLICKED");
-                useStore.getState().showToast("⏳ specific sign-in...");
+                useStore.getState().showToast("⏳ Connecting to Google...");
                 
                 signInWithGoogle().then(res => {
                    console.log("[GuestBanner] Sign-in result:", res);

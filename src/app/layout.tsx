@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "@/components/providers/AuthProvider";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 
 const inter = Inter({
   variable: "--font-inter",

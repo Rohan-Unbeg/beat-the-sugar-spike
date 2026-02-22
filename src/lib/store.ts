@@ -23,6 +23,8 @@ interface UserProfile {
   bmi: number | null;
   isAnonymous: boolean;
   isPassiveSyncEnabled: boolean;
+  lastLogCount?: number;
+  freeTrialsUsed: number;
   passiveData: {
     steps: number;
     heartRate: number;
@@ -88,7 +90,9 @@ export const useStore = create<AppState>()(
         email: null,
         bmi: null,
         isAnonymous: true,
-        isPassiveSyncEnabled: false,
+        isPassiveSyncEnabled: true,
+        lastLogCount: 0,
+        freeTrialsUsed: 0,
         passiveData: {
           steps: 0,
           heartRate: 72,
@@ -328,7 +332,9 @@ export const useStore = create<AppState>()(
             email: null,
             bmi: null,
             isAnonymous: true,
-            isPassiveSyncEnabled: false,
+            isPassiveSyncEnabled: true,
+            lastLogCount: 0,
+            freeTrialsUsed: 0,
             passiveData: {
               steps: 0,
               heartRate: 72,
