@@ -97,6 +97,17 @@ This project is optimized for deployment on **Vercel**.
 
 ---
 
+## 🤝 Contributing
+
+We love contributions! To keep our hackathon project professional and scalable, we follow a strict OSS workflow inspired by projects like **Oppia**.
+
+- **Guidelines**: Read our [CONTRIBUTING.md](CONTRIBUTING.md) for branch naming and PR rules.
+- **Report a Bug**: Use our [Bug Report Template](https://github.com/Rohan-Unbeg/beat-the-sugar-spike/issues/new?template=bug_report.md).
+- **Request a Feature**: Use our [Feature Request Template](https://github.com/Rohan-Unbeg/beat-the-sugar-spike/issues/new?template=feature_request.md).
+- **Submit a PR**: Our [Pull Request Template](.github/PULL_REQUEST_TEMPLATE.md) will help you provide the right context.
+
+---
+
 ## 🏃 Local Setup
 
 1.  **Clone & Install**
