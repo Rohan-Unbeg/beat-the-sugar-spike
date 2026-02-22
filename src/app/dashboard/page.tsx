@@ -5,7 +5,7 @@ import { signInWithGoogle } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Flame, Trophy, Plus, Clock, Search, ArrowUpRight, Trash2 } from "lucide-react";
+import { Flame, Trophy, Clock, ArrowUpRight, Trash2 } from "lucide-react";
 import SugarLogger from "@/components/dashboard/SugarLogger";
 import DailyStats from "@/components/dashboard/DailyStats";
 import RewardModal from "@/components/feedback/RewardModal";
